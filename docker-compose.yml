@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: dishhome_d2d_db
+    environment:
+      POSTGRES_DB: dishhome_d2d
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgrespassword
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  backend:
+    build: ./backend
+    container_name: dishhome_d2d_backend
+    command: >
+      sh -c "python manage.py migrate &&
+             python seed_demo_data.py &&
+             python manage.py runserver 0.0.0.0:8000"
+    volumes:
+      - ./backend:/app
+    environment:
+      DJANGO_DEBUG: "False"
+      DJANGO_SECRET_KEY: "dishhome-d2d-operations-secret-key-2026-production"
+      POSTGRES_DB: dishhome_d2d
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgrespassword
+      POSTGRES_HOST: db
+      POSTGRES_PORT: "5432"
+      ALLOWED_HOSTS: "*"
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+
+  frontend:
+    build: ./frontend
+    container_name: dishhome_d2d_frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
