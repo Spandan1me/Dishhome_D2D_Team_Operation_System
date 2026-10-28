@@ -112,6 +112,9 @@ class ChangePasswordSerializer(serializers.Serializer):
     old_password = serializers.CharField(required=True)
     new_password = serializers.CharField(required=True, min_length=6)
 
+class ResetUserPasswordSerializer(serializers.Serializer):
+    new_password = serializers.CharField(required=True, min_length=6)
+
 class AgentListSerializer(serializers.ModelSerializer):
     pending_customers_count = serializers.IntegerField(read_only=True, default=0)
     assigned_customers_count = serializers.IntegerField(read_only=True, default=0)

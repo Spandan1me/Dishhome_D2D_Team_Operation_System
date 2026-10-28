@@ -229,3 +229,41 @@ class D2DBusinessLogicTests(TestCase):
         toggle_response = self.client.post(f'/api/v1/users/{created_agent.id}/toggle-active/')
         self.assertEqual(toggle_response.status_code, status.HTTP_200_OK)
         self.assertFalse(toggle_response.data['is_active'])
+
+    def test_reset_user_password_for_managed_account(self):
+        self.client.force_authenticate(user=self.supervisor)
+        create_response = self.client.post('/api/v1/users/', {
+            'username': 'resettable_agent',
+            'password': 'Password@123',
+            'full_name': 'Resettable Agent',
+        })
+        self.assertEqual(create_response.status_code, status.HTTP_201_CREATED)
+
+        managed_agent = User.objects.get(username='resettable_agent')
+        reset_response = self.client.post(
+            f'/api/v1/users/{managed_agent.id}/reset-password/',
+            {'new_password': 'NewPassword@456'}
+        )
+        self.assertEqual(reset_response.status_code, status.HTTP_200_OK)
+        managed_agent.refresh_from_db()
+        self.assertTrue(managed_agent.check_password('NewPassword@456'))
+
+        other_supervisor = User.objects.create_user(
+            username='other_supervisor_reset',
+            password='Password@123',
+            role=RoleChoices.SUPERVISOR,
+        )
+        forbidden = self.client.post(
+            f'/api/v1/users/{other_supervisor.id}/reset-password/',
+            {'new_password': 'AnotherPassword@123'}
+        )
+        self.assertEqual(forbidden.status_code, status.HTTP_404_NOT_FOUND)
+
+        self.client.force_authenticate(user=self.admin)
+        admin_reset = self.client.post(
+            f'/api/v1/users/{self.supervisor.id}/reset-password/',
+            {'new_password': 'SupervisorPassword@789'}
+        )
+        self.assertEqual(admin_reset.status_code, status.HTTP_200_OK)
+        self.supervisor.refresh_from_db()
+        self.assertTrue(self.supervisor.check_password('SupervisorPassword@789'))

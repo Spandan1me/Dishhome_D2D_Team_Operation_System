@@ -38,9 +38,12 @@ export const TeamManagementPage: React.FC = () => {
 
   // Deactivate & Delete Action States
   const [togglingId, setTogglingId] = useState<number | null>(null);
+  const [resettingPasswordId, setResettingPasswordId] = useState<number | null>(null);
   const [agentToDelete, setAgentToDelete] = useState<any | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [deleteWarning, setDeleteWarning] = useState<string | null>(null);
+  const [userToResetPassword, setUserToResetPassword] = useState<any | null>(null);
+  const [newPassword, setNewPassword] = useState('');
 
   const fetchAgents = async () => {
     try {
@@ -97,6 +100,30 @@ export const TeamManagementPage: React.FC = () => {
       }
     } finally {
       setDeletingId(null);
+    }
+  };
+
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!userToResetPassword) return;
+    if (!newPassword || newPassword.length < 6) {
+      setError('New password must be at least 6 characters long.');
+      return;
+    }
+
+    try {
+      setResettingPasswordId(userToResetPassword.id);
+      setError(null);
+      const res = await api.post(`/users/${userToResetPassword.id}/reset-password/`, {
+        new_password: newPassword,
+      });
+      setSuccess(res.data?.detail || `Password reset for ${userToResetPassword.username}.`);
+      setUserToResetPassword(null);
+      setNewPassword('');
+    } catch (err: any) {
+      setError(err.response?.data?.detail || 'Failed to reset password.');
+    } finally {
+      setResettingPasswordId(null);
     }
   };
 
@@ -266,6 +293,18 @@ export const TeamManagementPage: React.FC = () => {
 
                         <button
                           onClick={() => {
+                            setError(null);
+                            setNewPassword('');
+                            setUserToResetPassword(ag);
+                          }}
+                          className="p-1.5 text-text-secondary hover:text-brand-red hover:bg-red-50 rounded transition-colors"
+                          title="Reset user password"
+                        >
+                          <Lock className="w-3.5 h-3.5" />
+                        </button>
+
+                        <button
+                          onClick={() => {
                             setDeleteWarning(null);
                             setAgentToDelete(ag);
                           }}
@@ -353,6 +392,70 @@ export const TeamManagementPage: React.FC = () => {
                 </button>
               )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Reset Password Modal */}
+      {userToResetPassword && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
+          <div className="bg-surface rounded-card-md p-6 max-w-md w-full shadow-2xl border border-border">
+            <div className="flex items-center gap-3 pb-3 border-b border-border mb-4">
+              <div className="w-10 h-10 rounded-full bg-brand-red-light flex items-center justify-center">
+                <Lock className="w-5 h-5 text-brand-red" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-text-primary uppercase">Reset Password</h3>
+                <p className="text-xs text-text-secondary">
+                  {userToResetPassword.full_name || userToResetPassword.username}
+                </p>
+              </div>
+            </div>
+
+            {error && (
+              <div className="mb-4 p-3 bg-red-50 border border-red-200 text-danger text-xs rounded-lg flex items-center gap-1.5 font-medium">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{error}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleResetPassword} className="space-y-4 text-xs">
+              <div>
+                <label className="block font-bold text-text-secondary uppercase mb-1">
+                  New Password (min 6 chars) *
+                </label>
+                <input
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="Enter a new password"
+                  className="w-full px-3 py-2.5 bg-input-bg border-b-2 border-input-focus rounded-t-md text-text-primary focus:outline-none"
+                  required
+                />
+              </div>
+
+              <div className="pt-4 flex items-center justify-end gap-2.5 border-t border-border mt-4">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setUserToResetPassword(null);
+                    setNewPassword('');
+                    setError(null);
+                  }}
+                  className="px-4 py-2 text-text-secondary hover:bg-gray-100 rounded-md font-semibold"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={resettingPasswordId !== null}
+                  className="px-5 py-2.5 bg-brand-red hover:bg-brand-red-dark text-white font-bold uppercase rounded-md shadow flex items-center gap-1.5"
+                >
+                  {resettingPasswordId !== null && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                  <span>Update Password</span>
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

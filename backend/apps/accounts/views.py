@@ -10,6 +10,7 @@ from .serializers import (
     UserSerializer,
     LoginSerializer,
     ChangePasswordSerializer,
+    ResetUserPasswordSerializer,
     AgentListSerializer,
     ManagedUserCreateSerializer,
 )
@@ -212,6 +213,46 @@ class AgentManagementViewSet(viewsets.ModelViewSet):
             'is_active': managed_user.is_active,
             'user': UserSerializer(managed_user).data
         })
+
+    @action(detail=True, methods=['post'], url_path='reset-password')
+    def reset_password(self, request, pk=None):
+        managed_user = self.get_object()
+        if managed_user.is_superuser or managed_user.role == RoleChoices.ADMIN or managed_user == request.user:
+            return Response(
+                {'detail': 'Administrator accounts and your own account cannot be reset here.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        if not request.user.is_admin_user and (
+            managed_user.role != RoleChoices.AGENT or managed_user.supervisor != request.user
+        ):
+            return Response(
+                {'detail': 'You can only reset passwords for agents created under your supervision.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        serializer = ResetUserPasswordSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        new_password = serializer.validated_data['new_password']
+
+        managed_user.set_password(new_password)
+        managed_user.save(update_fields=['password'])
+
+        try:
+            from apps.audit.models import AuditLog, AuditAction
+            AuditLog.objects.create(
+                user=request.user,
+                action=AuditAction.STATUS_CHANGE,
+                entity_type='User',
+                entity_id=str(managed_user.id),
+                after_values={'password_reset': True},
+                reason=f"Reset password for user {managed_user.username}"
+            )
+        except Exception:
+            pass
+
+        return Response({
+            'detail': f"Password reset successfully for user '{managed_user.username}'."
+        }, status=status.HTTP_200_OK)
 
     def destroy(self, request, *args, **kwargs):
         managed_user = self.get_object()
