@@ -33,8 +33,6 @@ class BatchAllocationDataView(views.APIView):
 
         # Eligible agents
         agents_qs = User.objects.filter(role=RoleChoices.AGENT, is_active=True)
-        if not request.user.is_admin_user:
-            agents_qs = agents_qs.filter(supervisor=request.user)
 
         agents_data = [
             {

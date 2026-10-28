@@ -39,8 +39,7 @@ class AllocationReportView(views.APIView):
         ).all().order_by('-assigned_at')
 
         if not request.user.is_admin_user:
-            team_agents = request.user.supervised_agents.all()
-            assignments = assignments.filter(assigned_agent__in=team_agents)
+            assignments = assignments.all()
 
         agent_id = request.query_params.get('agent')
         if agent_id:
@@ -70,8 +69,7 @@ class VisitFindingsReportView(views.APIView):
         visits = VisitLog.objects.select_related('customer', 'agent').all().order_by('-completed_at')
 
         if not request.user.is_admin_user:
-            team_agents = request.user.supervised_agents.all()
-            visits = visits.filter(agent__in=team_agents)
+            visits = visits.all()
 
         agent_id = request.query_params.get('agent')
         if agent_id:
@@ -113,8 +111,6 @@ class AgentPerformanceReportView(views.APIView):
 
     def get(self, request):
         agents = User.objects.filter(role=RoleChoices.AGENT, is_active=True)
-        if not request.user.is_admin_user:
-            agents = agents.filter(supervisor=request.user)
 
         data = []
         for agent in agents:

@@ -94,8 +94,9 @@ class EligibleAgentsView(views.APIView):
 
     def get(self, request):
         qs = User.objects.filter(role=RoleChoices.AGENT, is_active=True)
-        if not request.user.is_admin_user:
-            qs = qs.filter(supervisor=request.user)
+
+        # Supervisors need to be able to allocate work to agents created by other
+        # supervisors in the shared operation workspace.
 
         # Annotate with active pending assignments
         qs = qs.annotate(
@@ -134,7 +135,7 @@ class AgentManagementViewSet(viewsets.ModelViewSet):
             if role_filter:
                 qs = qs.filter(role=role_filter)
         else:
-            qs = User.objects.filter(role=RoleChoices.AGENT, supervisor=self.request.user)
+            qs = User.objects.filter(role__in=[RoleChoices.AGENT, RoleChoices.SUPERVISOR])
         return qs.annotate(
             assigned_customers_count=Count(
                 'assignments',

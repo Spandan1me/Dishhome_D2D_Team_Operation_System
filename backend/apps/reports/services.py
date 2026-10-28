@@ -15,11 +15,12 @@ from apps.accounts.models import User, RoleChoices
 def get_supervisor_dashboard_stats(user):
     today = timezone.localdate()
 
-    # Determine team scope
-    team_agents = user.supervised_agents.all() if not user.is_admin_user else User.objects.filter(role=RoleChoices.AGENT)
+    # Supervisors need shared visibility across the operation workspace, not only
+    # agents under their own direct supervision.
+    team_agents = User.objects.filter(role=RoleChoices.AGENT) if not user.is_admin_user else User.objects.filter(role=RoleChoices.AGENT)
 
     # Customers scope
-    if user.is_admin_user:
+    if user.is_admin_user or user.is_supervisor_user:
         customers_qs = Customer.objects.all()
         visits_qs = VisitLog.objects.all()
         followups_qs = FollowUp.objects.all()

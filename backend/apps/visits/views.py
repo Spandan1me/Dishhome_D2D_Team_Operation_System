@@ -55,8 +55,7 @@ class VisitListCreateView(views.APIView):
         if user.is_agent_user:
             qs = qs.filter(agent=user)
         elif user.is_supervisor_user:
-            team_agents = user.supervised_agents.all()
-            qs = qs.filter(agent__in=team_agents)
+            qs = qs.all()
 
         # Filters
         customer_id = request.query_params.get('customer')

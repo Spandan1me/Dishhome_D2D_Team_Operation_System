@@ -26,8 +26,7 @@ class FollowUpListView(generics.ListAPIView):
         if user.is_agent_user:
             qs = qs.filter(assigned_agent=user)
         elif user.is_supervisor_user:
-            team_agents = user.supervised_agents.all()
-            qs = qs.filter(assigned_agent__in=team_agents)
+            qs = qs.all()
 
         filter_type = self.request.query_params.get('filter')
         if filter_type == 'today':

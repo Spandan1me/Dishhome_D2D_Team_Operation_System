@@ -224,7 +224,7 @@ class D2DBusinessLogicTests(TestCase):
             supervisor=other_supervisor,
         )
         delete_response = self.client.delete(f'/api/v1/users/{other_agent.id}/')
-        self.assertEqual(delete_response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertEqual(delete_response.status_code, status.HTTP_403_FORBIDDEN)
 
         toggle_response = self.client.post(f'/api/v1/users/{created_agent.id}/toggle-active/')
         self.assertEqual(toggle_response.status_code, status.HTTP_200_OK)
@@ -257,7 +257,7 @@ class D2DBusinessLogicTests(TestCase):
             f'/api/v1/users/{other_supervisor.id}/reset-password/',
             {'new_password': 'AnotherPassword@123'}
         )
-        self.assertEqual(forbidden.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertEqual(forbidden.status_code, status.HTTP_403_FORBIDDEN)
 
         self.client.force_authenticate(user=self.admin)
         admin_reset = self.client.post(
@@ -268,11 +268,18 @@ class D2DBusinessLogicTests(TestCase):
         self.supervisor.refresh_from_db()
         self.assertTrue(self.supervisor.check_password('SupervisorPassword@789'))
 
-    def test_supervisor_can_see_customer_uploads_from_other_supervisors(self):
+    def test_supervisor_can_see_customer_uploads_and_agents_from_other_supervisors(self):
         other_supervisor = User.objects.create_user(
             username='other_sup',
             password='Password@123',
             role=RoleChoices.SUPERVISOR,
+        )
+        other_agent = User.objects.create_user(
+            username='other_agent_shared',
+            password='Password@123',
+            full_name='Shared Other Agent',
+            role=RoleChoices.AGENT,
+            supervisor=other_supervisor,
         )
         uploaded_customer = Customer.objects.create(
             customer_id='DH_SUP_OTHER_001',
@@ -285,7 +292,18 @@ class D2DBusinessLogicTests(TestCase):
         )
 
         self.client.force_authenticate(user=self.supervisor)
-        response = self.client.get('/api/v1/customers/')
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        ids = {customer['id'] for customer in response.data['results']}
-        self.assertIn(uploaded_customer.id, ids)
+
+        user_response = self.client.get('/api/v1/users/')
+        self.assertEqual(user_response.status_code, status.HTTP_200_OK)
+        user_ids = {user['id'] for user in user_response.data['results']}
+        self.assertIn(other_agent.id, user_ids)
+
+        eligible_response = self.client.get('/api/v1/users/eligible-agents/')
+        self.assertEqual(eligible_response.status_code, status.HTTP_200_OK)
+        eligible_ids = {user['id'] for user in eligible_response.data}
+        self.assertIn(other_agent.id, eligible_ids)
+
+        customer_response = self.client.get('/api/v1/customers/')
+        self.assertEqual(customer_response.status_code, status.HTTP_200_OK)
+        customer_ids = {customer['id'] for customer in customer_response.data['results']}
+        self.assertIn(uploaded_customer.id, customer_ids)
