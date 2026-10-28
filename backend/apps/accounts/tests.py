@@ -194,6 +194,41 @@ class D2DBusinessLogicTests(TestCase):
         self.assertEqual(toggle_response.status_code, status.HTTP_200_OK)
         self.assertFalse(toggle_response.data['is_active'])
 
+    def test_supervisor_can_allocate_to_any_active_agent_in_workspace(self):
+        other_supervisor = User.objects.create_user(
+            username='other_sup_test',
+            password='Password@123',
+            full_name='Other Supervisor',
+            role=RoleChoices.SUPERVISOR,
+        )
+        other_agent = User.objects.create_user(
+            username='other_agent_test',
+            password='Password@123',
+            full_name='Other Agent',
+            role=RoleChoices.AGENT,
+            supervisor=other_supervisor,
+        )
+
+        self.client.force_authenticate(user=self.supervisor)
+        batch = ImportBatch.objects.create(
+            uploaded_by=self.supervisor,
+            filename='shared-team.xlsx',
+            import_status=ImportStatus.PENDING,
+            error_summary={'cached_rows': [{
+                'customer_id': 'DH_SHARED_100',
+                'customer_name': 'Shared Team Customer',
+                'phone_number': '9800000099',
+                'churn_days': 20,
+                'package': '100 Mbps'
+            }]},
+        )
+
+        response = self.client.post(
+            f'/api/v1/imports/{batch.id}/confirm/',
+            {'agent_id': other_agent.id}
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
     def test_supervisor_can_manage_only_their_own_agents(self):
         self.client.force_authenticate(user=self.supervisor)
         create_response = self.client.post('/api/v1/users/', {

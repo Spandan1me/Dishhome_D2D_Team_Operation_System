@@ -110,8 +110,6 @@ class ConfirmImportView(views.APIView):
             from apps.accounts.models import User, RoleChoices
             try:
                 assigned_agent = User.objects.get(pk=agent_id, role=RoleChoices.AGENT, is_active=True)
-                if not request.user.is_admin_user and assigned_agent.supervisor != request.user:
-                    return Response({'detail': 'Selected agent does not belong to your team.'}, status=status.HTTP_403_FORBIDDEN)
             except User.DoesNotExist:
                 return Response({'detail': 'Selected agent is invalid or inactive.'}, status=status.HTTP_400_BAD_REQUEST)
 
