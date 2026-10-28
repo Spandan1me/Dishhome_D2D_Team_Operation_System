@@ -267,3 +267,25 @@ class D2DBusinessLogicTests(TestCase):
         self.assertEqual(admin_reset.status_code, status.HTTP_200_OK)
         self.supervisor.refresh_from_db()
         self.assertTrue(self.supervisor.check_password('SupervisorPassword@789'))
+
+    def test_supervisor_can_see_customer_uploads_from_other_supervisors(self):
+        other_supervisor = User.objects.create_user(
+            username='other_sup',
+            password='Password@123',
+            role=RoleChoices.SUPERVISOR,
+        )
+        uploaded_customer = Customer.objects.create(
+            customer_id='DH_SUP_OTHER_001',
+            customer_name='Other Supervisor Upload',
+            phone_number='9800000099',
+            churn_days=12,
+            package='250 Mbps',
+            record_source=RecordSource.SUPERVISOR_UPLOAD,
+            created_by=other_supervisor,
+        )
+
+        self.client.force_authenticate(user=self.supervisor)
+        response = self.client.get('/api/v1/customers/')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        ids = {customer['id'] for customer in response.data['results']}
+        self.assertIn(uploaded_customer.id, ids)

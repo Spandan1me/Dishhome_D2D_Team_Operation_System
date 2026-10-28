@@ -5,6 +5,7 @@ from django.db.models import Q
 from django.db import transaction
 
 from apps.accounts.permissions import IsSupervisorOrAdmin, IsAgentUserRole
+from apps.accounts.models import RoleChoices
 from .models import Customer, RecordSource, ReviewStatus
 from .serializers import (
     CustomerListSerializer,
@@ -33,15 +34,17 @@ class CustomerListView(generics.ListAPIView):
                 Q(created_by=user, record_source=RecordSource.AGENT_MANUAL)
             ).distinct()
         elif user.is_supervisor_user:
-            # Customers assigned to agents supervised by this supervisor, or created by supervisor
+            # Supervisors should see all uploaded customer batches in the shared workspace,
+            # plus customers assigned to their team or created by their team. This keeps
+            # uploaded data visible across supervisors while preserving team-level access.
             team_agents = user.supervised_agents.all()
             qs = qs.filter(
                 Q(assignments__assigned_agent__in=team_agents) |
                 Q(created_by=user) |
                 Q(created_by__in=team_agents) |
                 Q(assignments__assigned_by=user) |
-                Q(batch_records__batch__uploaded_by=user) |
-                Q(assignments__isnull=True)  # Unassigned customers visible to supervisors
+                Q(batch_records__batch__uploaded_by__isnull=False) |
+                Q(assignments__isnull=True)
             ).distinct()
 
         # Query filters
