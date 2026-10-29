@@ -10,7 +10,9 @@ import {
   RefreshCw,
   Filter,
   CheckCircle,
-  AlertTriangle
+  AlertTriangle,
+  Copy,
+  Check
 } from 'lucide-react';
 
 export const VisitHistoryPage: React.FC = () => {
@@ -20,6 +22,32 @@ export const VisitHistoryPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('');
   const [hasGpsFilter, setHasGpsFilter] = useState('');
+  const [copiedId, setCopiedId] = useState<number | null>(null);
+
+  const formatVisitCopyText = (visit: any) => {
+    const gpsText = visit.gps_latitude && visit.gps_longitude
+      ? `${Number(visit.gps_latitude).toFixed(6)}, ${Number(visit.gps_longitude).toFixed(6)}`
+      : 'N/A';
+
+    return [
+      `Customer id: ${visit.customer_code || 'N/A'}`,
+      `Phone number: ${visit.phone_number || 'N/A'}`,
+      `Customer gps: ${gpsText}`,
+      `Churn Days: ${visit.churn_days ?? 'N/A'}`,
+      `Follow up remarks: ${visit.follow_up_remark || 'N/A'}`,
+      `Note: ${visit.notes || 'N/A'}`,
+    ].join('\n');
+  };
+
+  const handleCopyVisitSummary = async (visit: any) => {
+    try {
+      await navigator.clipboard.writeText(formatVisitCopyText(visit));
+      setCopiedId(visit.id);
+      window.setTimeout(() => setCopiedId((current) => (current === visit.id ? null : current)), 1500);
+    } catch (error) {
+      console.error('Failed to copy visit summary', error);
+    }
+  };
 
   const fetchVisits = async () => {
     try {
@@ -166,8 +194,24 @@ export const VisitHistoryPage: React.FC = () => {
                         {!v.has_photo && !v.has_video && <span className="text-text-secondary">-</span>}
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-text-secondary font-mono">
-                      {v.completed_at ? new Date(v.completed_at).toLocaleString() : 'N/A'}
+                    <td className="px-4 py-3 text-text-secondary font-mono" onClick={(e) => e.stopPropagation()}>
+                      <div className="flex items-center justify-between gap-2">
+                        <span>{v.completed_at ? new Date(v.completed_at).toLocaleString() : 'N/A'}</span>
+                        {v.visit_status === 'COMPLETED' && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleCopyVisitSummary(v);
+                            }}
+                            className="inline-flex items-center gap-1 rounded border border-border bg-gray-50 px-2 py-1 text-[10px] font-semibold text-text-primary hover:bg-brand-red-light/30 transition-colors"
+                            title="Copy visit summary"
+                          >
+                            {copiedId === v.id ? <Check className="w-3 h-3 text-success" /> : <Copy className="w-3 h-3" />}
+                            <span>{copiedId === v.id ? 'Copied' : 'Copy'}</span>
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}

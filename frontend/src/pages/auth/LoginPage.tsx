@@ -8,9 +8,8 @@ export const LoginPage: React.FC = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
 
-  // Pre-fill with Spandan.Gairhe matching the authentic DishHome OSS screenshot
-  const [username, setUsername] = useState('Spandan.Gairhe');
-  const [password, setPassword] = useState('Super@123');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -41,23 +40,6 @@ export const LoginPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleQuickFill = (role: 'spandan' | 'supervisor' | 'agent' | 'admin') => {
-    if (role === 'spandan') {
-      setUsername('Spandan.Gairhe');
-      setPassword('Super@123');
-    } else if (role === 'supervisor') {
-      setUsername('supervisor1');
-      setPassword('Super@123');
-    } else if (role === 'agent') {
-      setUsername('agent1');
-      setPassword('Agent@123');
-    } else {
-      setUsername('admin');
-      setPassword('Admin@123');
-    }
-    setError(null);
   };
 
   return (
@@ -175,38 +157,6 @@ export const LoginPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Discreet Floating Demo Switcher (Bottom-left toolbar so it doesn't disturb the authentic card) */}
-      <div className="fixed bottom-3 left-4 z-50 hidden sm:flex items-center gap-1.5 bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-full shadow border border-gray-200 text-xs">
-        <span className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide">Demo:</span>
-        <button
-          type="button"
-          onClick={() => handleQuickFill('spandan')}
-          className="px-2 py-0.5 text-[11px] font-medium bg-red-50 text-[#F44336] hover:bg-red-100 rounded transition-colors"
-        >
-          Spandan.Gairhe
-        </button>
-        <button
-          type="button"
-          onClick={() => handleQuickFill('supervisor')}
-          className="px-2 py-0.5 text-[11px] font-medium bg-gray-100 text-gray-700 hover:bg-gray-200 rounded transition-colors"
-        >
-          supervisor1
-        </button>
-        <button
-          type="button"
-          onClick={() => handleQuickFill('agent')}
-          className="px-2 py-0.5 text-[11px] font-medium bg-blue-50 text-blue-700 hover:bg-blue-100 rounded transition-colors"
-        >
-          agent1
-        </button>
-        <button
-          type="button"
-          onClick={() => handleQuickFill('admin')}
-          className="px-2 py-0.5 text-[11px] font-medium bg-gray-100 text-gray-700 hover:bg-gray-200 rounded transition-colors"
-        >
-          admin
-        </button>
-      </div>
     </div>
   );
 };
