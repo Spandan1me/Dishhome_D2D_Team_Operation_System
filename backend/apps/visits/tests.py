@@ -50,6 +50,8 @@ class VisitEvidenceTests(TestCase):
                 'customer_id': str(self.customer.id),
                 'visit_status': 'COMPLETED',
                 'follow_up_remark': 'Connected',
+                'gps_latitude': 27.7172,
+                'gps_longitude': 85.3241,
                 'photo': self.make_photo(),
                 'video': SimpleUploadedFile(
                     'visit.mp4',
@@ -85,6 +87,8 @@ class VisitEvidenceTests(TestCase):
                 'customer_id': str(self.customer.id),
                 'visit_status': 'COMPLETED',
                 'follow_up_remark': 'Connected',
+                'gps_latitude': 27.7172,
+                'gps_longitude': 85.3241,
                 'photo': self.make_photo(),
             },
             format='multipart',
@@ -115,6 +119,8 @@ class VisitEvidenceTests(TestCase):
                 'customer_id': str(self.customer.id),
                 'visit_status': 'COMPLETED',
                 'follow_up_remark': 'Connected',
+                'gps_latitude': 27.7172,
+                'gps_longitude': 85.3241,
                 'photo_evidence_id': upload_response.data['id'],
             },
             format='multipart',
@@ -130,3 +136,17 @@ class VisitEvidenceTests(TestCase):
         )
         self.assertEqual(evidence_response.status_code, status.HTTP_200_OK)
         evidence_response.close()
+
+    def test_completed_visit_requires_gps_coordinates(self):
+        response = self.client.post(
+            '/api/v1/visits/',
+            {
+                'customer_id': str(self.customer.id),
+                'visit_status': 'COMPLETED',
+                'follow_up_remark': 'Connected',
+            },
+            format='multipart',
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('GPS', str(response.data))
