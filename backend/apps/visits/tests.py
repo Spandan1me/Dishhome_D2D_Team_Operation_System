@@ -137,7 +137,7 @@ class VisitEvidenceTests(TestCase):
         self.assertEqual(evidence_response.status_code, status.HTTP_200_OK)
         evidence_response.close()
 
-    def test_completed_visit_requires_gps_coordinates(self):
+    def test_completed_visit_allows_missing_gps_coordinates(self):
         response = self.client.post(
             '/api/v1/visits/',
             {
@@ -148,5 +148,6 @@ class VisitEvidenceTests(TestCase):
             format='multipart',
         )
 
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn('GPS', str(response.data))
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertFalse(response.data['gps_latitude'])
+        self.assertFalse(response.data['gps_longitude'])

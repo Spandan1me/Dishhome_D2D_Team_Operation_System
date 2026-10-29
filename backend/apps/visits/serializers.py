@@ -76,15 +76,6 @@ class RecordVisitSerializer(serializers.Serializer):
         return video
 
     def validate(self, attrs):
-        visit_status = attrs.get('visit_status') or VisitStatus.COMPLETED
-        has_valid_gps = attrs.get('gps_latitude') is not None and attrs.get('gps_longitude') is not None
-
-        if visit_status == VisitStatus.COMPLETED and not has_valid_gps:
-            raise serializers.ValidationError({
-                'gps_latitude': 'GPS coordinates are required before completing a visit.',
-                'gps_longitude': 'GPS coordinates are required before completing a visit.'
-            })
-
         raw_remark = (attrs.get('follow_up_remark') or '').strip()
         # Normalize dash variants and replacement characters
         norm_remark = (
