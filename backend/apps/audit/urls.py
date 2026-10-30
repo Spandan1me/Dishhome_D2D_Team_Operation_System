@@ -1,6 +1,7 @@
 from django.urls import path
-from .views import AuditLogListView
+from .views import AuditLogListView, AuditLogDetailView
 
 urlpatterns = [
     path('', AuditLogListView.as_view(), name='audit_log_list'),
+    path('<int:pk>/', AuditLogDetailView.as_view(), name='audit_log_detail'),
 ]

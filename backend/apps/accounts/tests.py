@@ -8,6 +8,7 @@ from apps.visits.models import VisitLog, VisitStatus
 from apps.followups.models import FollowUp, FollowUpStatus
 from apps.imports.models import ImportBatch, ImportStatus, CustomerBatchRecord
 from apps.imports.services import parse_and_validate_file
+from apps.audit.models import AuditLog, AuditAction
 import io
 import openpyxl
 
@@ -342,3 +343,17 @@ class D2DBusinessLogicTests(TestCase):
         self.assertEqual(customer_response.status_code, status.HTTP_200_OK)
         customer_ids = {customer['id'] for customer in customer_response.data['results']}
         self.assertIn(uploaded_customer.id, customer_ids)
+
+    def test_supervisor_can_delete_incorrect_audit_log_entries(self):
+        self.client.force_authenticate(user=self.supervisor)
+        audit_log = AuditLog.objects.create(
+            user=self.supervisor,
+            action=AuditAction.LOGIN,
+            entity_type='User',
+            entity_id=str(self.supervisor.id),
+            reason='Test audit entry' 
+        )
+
+        response = self.client.delete(f'/api/v1/audit/{audit_log.id}/')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertFalse(AuditLog.objects.filter(id=audit_log.id).exists())

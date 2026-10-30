@@ -6,7 +6,8 @@ import {
   RefreshCw,
   Filter,
   User,
-  Clock
+  Clock,
+  Trash2
 } from 'lucide-react';
 
 export const AuditLogsPage: React.FC = () => {
@@ -14,6 +15,7 @@ export const AuditLogsPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [actionFilter, setActionFilter] = useState('');
+  const [deletingId, setDeletingId] = useState<number | null>(null);
 
   const fetchLogs = async () => {
     try {
@@ -28,6 +30,22 @@ export const AuditLogsPage: React.FC = () => {
       console.error('Error fetching audit logs', e);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDeleteLog = async (logId: number) => {
+    if (!window.confirm('Delete this audit log entry? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      setDeletingId(logId);
+      await api.delete(`/audit/${logId}/`);
+      setLogs((current) => current.filter((log) => log.id !== logId));
+    } catch (e) {
+      console.error('Error deleting audit log', e);
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -105,6 +123,7 @@ export const AuditLogsPage: React.FC = () => {
                   <th className="px-4 py-3">Action</th>
                   <th className="px-4 py-3">Entity</th>
                   <th className="px-4 py-3">Reason / Details</th>
+                  <th className="px-4 py-3 text-right">Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
@@ -132,6 +151,18 @@ export const AuditLogsPage: React.FC = () => {
                     </td>
                     <td className="px-4 py-3 text-text-primary max-w-md">
                       {log.reason || '-'}
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteLog(log.id)}
+                        disabled={deletingId === log.id}
+                        className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md border border-red-200 bg-red-50 text-danger text-[10px] font-bold hover:bg-red-100 disabled:opacity-60"
+                        title="Delete this audit log"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        {deletingId === log.id ? 'Deleting...' : 'Delete'}
+                      </button>
                     </td>
                   </tr>
                 ))}
