@@ -12,7 +12,8 @@ import {
   CheckCircle,
   AlertTriangle,
   Copy,
-  Check
+  Check,
+  Trash2
 } from 'lucide-react';
 
 export const VisitHistoryPage: React.FC = () => {
@@ -23,6 +24,7 @@ export const VisitHistoryPage: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState('');
   const [hasGpsFilter, setHasGpsFilter] = useState('');
   const [copiedId, setCopiedId] = useState<number | null>(null);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
 
   const formatVisitCopyText = (visit: any) => {
     const gpsText = visit.gps_latitude && visit.gps_longitude
@@ -46,6 +48,22 @@ export const VisitHistoryPage: React.FC = () => {
       window.setTimeout(() => setCopiedId((current) => (current === visit.id ? null : current)), 1500);
     } catch (error) {
       console.error('Failed to copy visit summary', error);
+    }
+  };
+
+  const handleDeleteVisit = async (visit: any) => {
+    if (!window.confirm(`Delete this visit log for customer ${visit.customer_code || visit.customer_name || 'this customer'}? This removes the mistaken visit record.`)) {
+      return;
+    }
+
+    try {
+      setDeletingId(visit.id);
+      await api.delete(`/visits/${visit.id}/`);
+      setVisits((current) => current.filter((item) => item.id !== visit.id));
+    } catch (error) {
+      console.error('Failed to delete visit log', error);
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -197,20 +215,35 @@ export const VisitHistoryPage: React.FC = () => {
                     <td className="px-4 py-3 text-text-secondary font-mono" onClick={(e) => e.stopPropagation()}>
                       <div className="flex items-center justify-between gap-2">
                         <span>{v.completed_at ? new Date(v.completed_at).toLocaleString() : 'N/A'}</span>
-                        {v.visit_status === 'COMPLETED' && (
+                        <div className="flex items-center gap-1.5">
+                          {v.visit_status === 'COMPLETED' && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleCopyVisitSummary(v);
+                              }}
+                              className="inline-flex items-center gap-1 rounded border border-border bg-gray-50 px-2 py-1 text-[10px] font-semibold text-text-primary hover:bg-brand-red-light/30 transition-colors"
+                              title="Copy visit summary"
+                            >
+                              {copiedId === v.id ? <Check className="w-3 h-3 text-success" /> : <Copy className="w-3 h-3" />}
+                              <span>{copiedId === v.id ? 'Copied' : 'Copy'}</span>
+                            </button>
+                          )}
                           <button
                             type="button"
                             onClick={(e) => {
                               e.stopPropagation();
-                              handleCopyVisitSummary(v);
+                              handleDeleteVisit(v);
                             }}
-                            className="inline-flex items-center gap-1 rounded border border-border bg-gray-50 px-2 py-1 text-[10px] font-semibold text-text-primary hover:bg-brand-red-light/30 transition-colors"
-                            title="Copy visit summary"
+                            disabled={deletingId === v.id}
+                            className="inline-flex items-center gap-1 rounded border border-red-200 bg-red-50 px-2 py-1 text-[10px] font-semibold text-danger hover:bg-red-100 disabled:opacity-60 transition-colors"
+                            title="Delete this visit log"
                           >
-                            {copiedId === v.id ? <Check className="w-3 h-3 text-success" /> : <Copy className="w-3 h-3" />}
-                            <span>{copiedId === v.id ? 'Copied' : 'Copy'}</span>
+                            <Trash2 className="w-3 h-3" />
+                            <span>{deletingId === v.id ? 'Deleting...' : 'Delete'}</span>
                           </button>
-                        )}
+                        </div>
                       </div>
                     </td>
                   </tr>

@@ -266,6 +266,45 @@ class VisitDetailView(generics.RetrieveAPIView):
     queryset = VisitLog.objects.select_related('customer', 'agent').all()
     serializer_class = VisitLogSerializer
 
+    def delete(self, request, *args, **kwargs):
+        visit = get_object_or_404(
+            VisitLog.objects.select_related('customer', 'agent'),
+            pk=self.kwargs.get('pk')
+        )
+
+        can_delete = (
+            request.user.is_admin_user
+            or visit.agent_id == request.user.id
+            or (request.user.is_supervisor_user and visit.agent.supervisor_id == request.user.id)
+        )
+        if not can_delete:
+            return Response(
+                {'detail': 'You do not have permission to delete this visit log.'},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        if visit.photo:
+            visit.photo.delete(save=False)
+        if visit.video:
+            visit.video.delete(save=False)
+
+        AuditLog.objects.create(
+            user=request.user,
+            action=AuditAction.DELETE,
+            entity_type='VisitLog',
+            entity_id=str(visit.id),
+            before_values={
+                'customer_id': visit.customer.customer_id,
+                'agent_id': visit.agent_id,
+                'status': visit.visit_status,
+            },
+            reason=f"Deleted visit log for customer {visit.customer.customer_id} by {visit.agent.username}"
+        )
+
+        FollowUp.objects.filter(related_visit=visit).delete()
+        visit.delete()
+        return Response({'detail': 'Visit log deleted successfully.'}, status=status.HTTP_200_OK)
+
 
 class VisitEvidenceView(views.APIView):
     permission_classes = [IsAuthenticated]

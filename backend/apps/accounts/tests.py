@@ -357,3 +357,18 @@ class D2DBusinessLogicTests(TestCase):
         response = self.client.delete(f'/api/v1/audit/{audit_log.id}/')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertFalse(AuditLog.objects.filter(id=audit_log.id).exists())
+
+    def test_agent_or_supervisor_can_delete_mistaken_visit_log(self):
+        self.client.force_authenticate(user=self.agent1)
+        visit = VisitLog.objects.create(
+            customer=self.customer1,
+            agent=self.agent1,
+            visit_status=VisitStatus.COMPLETED,
+            follow_up_remark='Ready to recharge',
+            notes='Mistaken entry',
+            completed_at='2024-01-01T00:00:00Z'
+        )
+
+        response = self.client.delete(f'/api/v1/visits/{visit.id}/')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertFalse(VisitLog.objects.filter(id=visit.id).exists())
