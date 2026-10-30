@@ -18,7 +18,8 @@ import {
   UserCheck,
   History,
   ShieldCheck,
-  CalendarClock
+  CalendarClock,
+  Trash2
 } from 'lucide-react';
 
 export const CustomerDetailPage: React.FC = () => {
@@ -62,6 +63,23 @@ export const CustomerDetailPage: React.FC = () => {
       alert('Failed to update review status.');
     } finally {
       setActionLoading(false);
+    }
+  };
+
+  const handleDeleteVisit = async (visit: any) => {
+    if (!window.confirm(`Delete this visit log for customer ${customer.customer_id || customer.customer_name || 'this customer'}? This removes the mistaken visit record.`)) {
+      return;
+    }
+
+    try {
+      await api.delete(`/visits/${visit.id}/`);
+      setCustomer((current: any) => ({
+        ...current,
+        visits: (current?.visits || []).filter((item: any) => item.id !== visit.id),
+      }));
+    } catch (e) {
+      console.error('Failed to delete visit log', e);
+      alert('Unable to delete this visit log.');
     }
   };
 
@@ -264,7 +282,7 @@ export const CustomerDetailPage: React.FC = () => {
           <div className="space-y-4">
             {visits.map((v: any) => (
               <div key={v.id} className="p-4 rounded-xl border border-border bg-gray-50/50 space-y-2">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 border-b border-border/60 pb-2">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border/60 pb-2">
                   <div className="flex items-center gap-2">
                     <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
                       v.visit_status === 'COMPLETED' ? 'bg-emerald-100 text-success' : 'bg-amber-100 text-warning'
@@ -273,9 +291,20 @@ export const CustomerDetailPage: React.FC = () => {
                     </span>
                     <span className="font-bold text-xs text-text-primary">{v.follow_up_remark}</span>
                   </div>
-                  <span className="text-[11px] text-text-secondary font-medium">
-                    Visited by {v.agent_name} on {v.completed_at ? new Date(v.completed_at).toLocaleString() : 'N/A'}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] text-text-secondary font-medium">
+                      Visited by {v.agent_name} on {v.completed_at ? new Date(v.completed_at).toLocaleString() : 'N/A'}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteVisit(v)}
+                      className="inline-flex items-center gap-1 rounded border border-red-200 bg-red-50 px-2 py-1 text-[10px] font-semibold text-danger hover:bg-red-100 transition-colors"
+                      title="Delete this visit log"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                      <span>Delete</span>
+                    </button>
+                  </div>
                 </div>
 
                 {v.switching_to && (
