@@ -12,7 +12,8 @@ import {
   RefreshCw,
   Clock,
   CheckCircle2,
-  AlertTriangle
+  AlertTriangle,
+  Trash2
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
@@ -73,6 +74,21 @@ export const CustomerListPage: React.FC = () => {
   const handlePageChange = (newPage: number) => {
     setCurrentPage(newPage);
     fetchCustomers(newPage);
+  };
+
+  const handleDeleteCustomer = async (customer: any) => {
+    if (!window.confirm(`Delete customer ${customer.customer_id}? This will remove the customer record and related visit data from the database.`)) {
+      return;
+    }
+
+    try {
+      await api.delete(`/customers/${customer.id}/`);
+      setCustomers((current) => current.filter((item) => item.id !== customer.id));
+      setTotalCount((current) => Math.max(current - 1, 0));
+    } catch (error) {
+      console.error('Failed to delete customer', error);
+      alert('Unable to delete this customer record.');
+    }
   };
 
   const totalPages = Math.ceil(totalCount / pageSize);
@@ -245,6 +261,13 @@ export const CustomerListPage: React.FC = () => {
                         >
                           <ClipboardList className="w-3 h-3" />
                           <span>Visit</span>
+                        </button>
+                        <button
+                          onClick={() => handleDeleteCustomer(c)}
+                          className="p-1.5 text-danger hover:text-danger border border-red-200 bg-red-50 hover:bg-red-100 rounded transition-colors"
+                          title="Delete customer"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
                         </button>
                         <button
                           onClick={() => navigate(`/customers/${c.id}`)}

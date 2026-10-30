@@ -124,6 +124,41 @@ class CustomerDetailView(views.APIView):
 
         return Response(data)
 
+    def delete(self, request, pk):
+        pk_str = str(pk).strip()
+        try:
+            if pk_str.isdigit():
+                customer = Customer.objects.get(pk=int(pk_str))
+            else:
+                customer = Customer.objects.get(customer_id=pk_str)
+        except Customer.DoesNotExist:
+            return Response({'detail': f'Customer "{pk}" not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+        if not request.user.is_admin_user and not request.user.is_supervisor_user:
+            return Response(
+                {'detail': 'Only supervisors and administrators can delete customer records.'},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        # Delete associated media before removing customer to avoid orphan files.
+        for visit in customer.visits.all():
+            if visit.photo:
+                visit.photo.delete(save=False)
+            if visit.video:
+                visit.video.delete(save=False)
+
+        customer.delete()
+
+        AuditLog.objects.create(
+            user=request.user,
+            action=AuditAction.DELETE,
+            entity_type='Customer',
+            entity_id=str(pk_str),
+            reason=f"Deleted customer record {customer.customer_id}"
+        )
+
+        return Response({'detail': 'Customer deleted successfully.'}, status=status.HTTP_200_OK)
+
 class ManualCustomerCreateView(views.APIView):
     """
     Agents can manually add a customer ID that was not part of an uploaded Excel file.
