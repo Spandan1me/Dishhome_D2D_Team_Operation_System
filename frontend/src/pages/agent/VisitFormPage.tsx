@@ -240,21 +240,34 @@ export const VisitFormPage: React.FC = () => {
       setCameraError('Select a customer before capturing visit evidence.');
       return;
     }
+    if (!window.isSecureContext && window.location.hostname !== 'localhost' && !window.location.hostname.startsWith('127.')) {
+      setCameraError('Camera access requires HTTPS or localhost. Open this page on a secure origin and try again.');
+      return;
+    }
     if (!navigator.mediaDevices?.getUserMedia) {
-      setCameraError('Camera access is not available. Open this page over HTTPS and allow camera permission.');
+      setCameraError('Camera access is not available in this browser. Please use a modern mobile browser and allow camera permission.');
       return;
     }
 
+    const askCamera = async () => {
+      try {
+        return await navigator.mediaDevices.getUserMedia({
+          audio: mode === 'VIDEO',
+          video: {
+            facingMode: 'environment',
+          },
+        });
+      } catch (primaryError) {
+        console.warn('Primary camera constraints rejected, retrying with browser-default constraints.', primaryError);
+        return await navigator.mediaDevices.getUserMedia({
+          audio: mode === 'VIDEO',
+          video: true,
+        });
+      }
+    };
+
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: mode === 'VIDEO' ? { echoCancellation: true, noiseSuppression: true } : false,
-        video: {
-          facingMode: { ideal: 'environment' },
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
-          frameRate: { ideal: 30, max: 30 },
-        },
-      });
+      const stream = await askCamera();
       setCameraStream(stream);
       if (cameraPreviewRef.current) {
         cameraPreviewRef.current.srcObject = stream;
@@ -264,7 +277,7 @@ export const VisitFormPage: React.FC = () => {
       }
     } catch (cameraRequestError) {
       console.error('Camera access failed', cameraRequestError);
-      setCameraError('Could not open the camera. Allow camera permission and try again.');
+      setCameraError('Could not open the camera. Please allow camera permission and try again. If this page is not on HTTPS/localhost, switch to a secure browser session.');
       setCameraStream(null);
     }
   };
@@ -427,6 +440,10 @@ export const VisitFormPage: React.FC = () => {
     }
     if (showRouterIsp && switchingTo && !routerIspOptions.includes(switchingTo)) {
       setError('Please select a valid ISP for the selected router collection remark.');
+      return;
+    }
+    if (visitStatus === 'COMPLETED' && (!gpsLatitude || !gpsLongitude)) {
+      setError('GPS location is required when the visit status is completed.');
       return;
     }
     if (photoUploadState === 'UPLOADING' || videoUploadState === 'UPLOADING') {
