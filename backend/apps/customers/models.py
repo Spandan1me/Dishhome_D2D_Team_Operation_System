@@ -22,6 +22,8 @@ class Customer(models.Model):
     phone_number = models.CharField(max_length=50, blank=True)
     churn_days = models.IntegerField(default=0, help_text="Number of days since service churn")
     package = models.CharField(max_length=100, blank=True)
+    pod_station = models.CharField(max_length=150, blank=True, default='')
+    pod = models.CharField(max_length=150, blank=True, default='')
     record_source = models.CharField(
         max_length=30,
         choices=RecordSource.choices,

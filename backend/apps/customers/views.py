@@ -180,6 +180,8 @@ class ManualCustomerCreateView(views.APIView):
                 phone_number=serializer.validated_data.get('phone_number', ''),
                 churn_days=serializer.validated_data.get('churn_days', 0),
                 package=serializer.validated_data.get('package', ''),
+                pod_station=serializer.validated_data.get('pod_station', ''),
+                pod=serializer.validated_data.get('pod', ''),
                 record_source=RecordSource.AGENT_MANUAL,
                 review_status=ReviewStatus.PENDING_REVIEW,
                 review_notes=notes,

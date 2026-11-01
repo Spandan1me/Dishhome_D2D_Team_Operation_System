@@ -8,7 +8,9 @@ EXPECTED_HEADERS = [
     'Customer Name',
     'Phone Number',
     'No. of Churn Days',
-    'Package'
+    'Package',
+    'POD Station',
+    'POD'
 ]
 
 def generate_excel_template() -> io.BytesIO:
@@ -35,9 +37,9 @@ def generate_excel_template() -> io.BytesIO:
 
     # Sample rows
     samples = [
-        ["DH10021", "Ram Sharma", "9801234567", 95, "200 Mbps"],
-        ["DH10022", "Sita Thapa", "9812345678", 120, "100 Mbps"],
-        ["DH10023", "Hari Gurung", "9841234567", 180, "300 Mbps"],
+        ["DH10021", "Ram Sharma", "9801234567", 95, "200 Mbps", "Kathmandu", "POD-01"],
+        ["DH10022", "Sita Thapa", "9812345678", 120, "100 Mbps", "Pokhara", "POD-02"],
+        ["DH10023", "Hari Gurung", "9841234567", 180, "300 Mbps", "Bhaktapur", "POD-03"],
     ]
 
     for row_idx, row_data in enumerate(samples, 2):
@@ -53,6 +55,8 @@ def generate_excel_template() -> io.BytesIO:
     ws.column_dimensions['C'].width = 18
     ws.column_dimensions['D'].width = 20
     ws.column_dimensions['E'].width = 20
+    ws.column_dimensions['F'].width = 18
+    ws.column_dimensions['G'].width = 18
 
     out = io.BytesIO()
     wb.save(out)
@@ -68,6 +72,8 @@ def parse_and_validate_file(file_obj, filename: str):
     - Phone Number: required string
     - No. of Churn Days: non-negative integer
     - Package: required string
+    - POD Station: required string
+    - POD: required string
     """
     if filename.lower().endswith('.csv'):
         import csv
@@ -102,14 +108,18 @@ def parse_and_validate_file(file_obj, filename: str):
             header_map['churn_days'] = idx
         elif "package" in normalized or "plan" in normalized:
             header_map['package'] = idx
+        elif "podstation" in normalized or "station" in normalized:
+            header_map['pod_station'] = idx
+        elif "pod" in normalized:
+            header_map['pod'] = idx
 
     missing = []
-    for req in ['customer_id', 'customer_name', 'phone_number', 'churn_days', 'package']:
+    for req in ['customer_id', 'customer_name', 'phone_number', 'churn_days', 'package', 'pod_station', 'pod']:
         if req not in header_map:
             missing.append(req)
 
     if missing:
-        raise ValueError(f"Uploaded template is missing required columns: {', '.join(missing)}. Please use the standard 5-column template.")
+        raise ValueError(f"Uploaded template is missing required columns: {', '.join(missing)}. Please use the standard 7-column template.")
 
     existing_customer_ids = set(
         Customer.objects.values_list('customer_id', flat=True)
@@ -130,11 +140,15 @@ def parse_and_validate_file(file_obj, filename: str):
         phone_raw = row_cells[header_map['phone_number']] if header_map['phone_number'] < len(row_cells) else None
         churn_raw = row_cells[header_map['churn_days']] if header_map['churn_days'] < len(row_cells) else None
         pkg_raw = row_cells[header_map['package']] if header_map['package'] < len(row_cells) else None
+        pod_station_raw = row_cells[header_map['pod_station']] if header_map['pod_station'] < len(row_cells) else None
+        pod_raw = row_cells[header_map['pod']] if header_map['pod'] < len(row_cells) else None
 
         customer_id = str(cid_raw).strip() if cid_raw is not None else ""
         customer_name = str(name_raw).strip() if name_raw is not None else ""
         phone_number = str(phone_raw).strip() if phone_raw is not None else ""
         package = str(pkg_raw).strip() if pkg_raw is not None else ""
+        pod_station = str(pod_station_raw).strip() if pod_station_raw is not None else ""
+        pod = str(pod_raw).strip() if pod_raw is not None else ""
 
         row_errors = []
         if not customer_id:
@@ -145,6 +159,10 @@ def parse_and_validate_file(file_obj, filename: str):
             row_errors.append("Phone Number is required.")
         if not package:
             row_errors.append("Package is required.")
+        if not pod_station:
+            row_errors.append("POD Station is required.")
+        if not pod:
+            row_errors.append("POD is required.")
 
         # Parse churn days
         churn_days = 0
@@ -175,6 +193,8 @@ def parse_and_validate_file(file_obj, filename: str):
             'phone_number': phone_number,
             'churn_days': churn_days,
             'package': package,
+            'pod_station': pod_station,
+            'pod': pod,
             'is_duplicate': is_file_duplicate or is_db_duplicate,
             'is_db_duplicate': is_db_duplicate,
             'errors': row_errors,

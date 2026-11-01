@@ -13,7 +13,7 @@ class CustomerListSerializer(serializers.ModelSerializer):
         model = Customer
         fields = [
             'id', 'customer_id', 'customer_name', 'phone_number',
-            'churn_days', 'package', 'record_source', 'review_status',
+            'churn_days', 'package', 'pod_station', 'pod', 'record_source', 'review_status',
             'review_notes', 'assigned_agent_id', 'assigned_agent_name',
             'latest_visit_status', 'latest_visit_date', 'latest_followup_date',
             'created_by_name', 'created_at', 'updated_at'
@@ -46,7 +46,7 @@ class ManualCustomerCreateSerializer(serializers.ModelSerializer):
         model = Customer
         fields = [
             'id', 'customer_id', 'customer_name', 'phone_number',
-            'churn_days', 'package', 'additional_notes'
+            'churn_days', 'package', 'pod_station', 'pod', 'additional_notes'
         ]
 
     def validate_customer_id(self, value):
@@ -58,6 +58,31 @@ class ManualCustomerCreateSerializer(serializers.ModelSerializer):
                 f"Customer ID '{cleaned_id}' already exists in the system."
             )
         return cleaned_id
+
+    def validate_customer_name(self, value):
+        if not str(value or '').strip():
+            raise serializers.ValidationError('Customer Name is required.')
+        return str(value).strip()
+
+    def validate_phone_number(self, value):
+        if not str(value or '').strip():
+            raise serializers.ValidationError('Phone Number is required.')
+        return str(value).strip()
+
+    def validate_package(self, value):
+        if not str(value or '').strip():
+            raise serializers.ValidationError('Package is required.')
+        return str(value).strip()
+
+    def validate_pod_station(self, value):
+        if not str(value or '').strip():
+            raise serializers.ValidationError('POD Station is required.')
+        return str(value).strip()
+
+    def validate_pod(self, value):
+        if not str(value or '').strip():
+            raise serializers.ValidationError('POD is required.')
+        return str(value).strip()
 
     def validate_churn_days(self, value):
         if value is not None and value < 0:

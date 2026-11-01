@@ -18,6 +18,8 @@ export const AddCustomerPage: React.FC = () => {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [churnDays, setChurnDays] = useState('0');
   const [packagePlan, setPackagePlan] = useState('');
+  const [podStation, setPodStation] = useState('');
+  const [pod, setPod] = useState('');
   const [notes, setNotes] = useState('');
 
   const [loading, setLoading] = useState(false);
@@ -28,6 +30,26 @@ export const AddCustomerPage: React.FC = () => {
     e.preventDefault();
     if (!customerId.trim()) {
       setError('Customer ID is required.');
+      return;
+    }
+    if (!customerName.trim()) {
+      setError('Customer Name is required.');
+      return;
+    }
+    if (!phoneNumber.trim()) {
+      setError('Phone Number is required.');
+      return;
+    }
+    if (!packagePlan.trim()) {
+      setError('Package is required.');
+      return;
+    }
+    if (!podStation.trim()) {
+      setError('POD Station is required.');
+      return;
+    }
+    if (!pod.trim()) {
+      setError('POD is required.');
       return;
     }
 
@@ -41,6 +63,8 @@ export const AddCustomerPage: React.FC = () => {
         phone_number: phoneNumber.trim(),
         churn_days: parseInt(churnDays) || 0,
         package: packagePlan.trim(),
+        pod_station: podStation.trim(),
+        pod: pod.trim(),
         additional_notes: notes.trim(),
       };
 
@@ -131,7 +155,7 @@ export const AddCustomerPage: React.FC = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-bold text-text-secondary uppercase mb-1">
-                  Customer Name (Optional)
+                  Customer Name *
                 </label>
                 <input
                   type="text"
@@ -139,12 +163,13 @@ export const AddCustomerPage: React.FC = () => {
                   onChange={(e) => setCustomerName(e.target.value)}
                   placeholder="e.g. Ram Bahadur"
                   className="w-full px-4 py-3 bg-input-bg border-b-2 border-input-focus rounded-t-md text-sm text-text-primary focus:outline-none"
+                  required
                 />
               </div>
 
               <div>
                 <label className="block text-xs font-bold text-text-secondary uppercase mb-1">
-                  Phone Number (Optional)
+                  Phone Number *
                 </label>
                 <input
                   type="tel"
@@ -152,6 +177,7 @@ export const AddCustomerPage: React.FC = () => {
                   onChange={(e) => setPhoneNumber(e.target.value)}
                   placeholder="e.g. 98XXXXXXXX"
                   className="w-full px-4 py-3 bg-input-bg border-b-2 border-input-focus rounded-t-md text-sm text-text-primary focus:outline-none"
+                  required
                 />
               </div>
             </div>
@@ -159,7 +185,7 @@ export const AddCustomerPage: React.FC = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-bold text-text-secondary uppercase mb-1">
-                  No. of Churn Days (Optional)
+                  No. of Churn Days *
                 </label>
                 <input
                   type="number"
@@ -167,12 +193,13 @@ export const AddCustomerPage: React.FC = () => {
                   value={churnDays}
                   onChange={(e) => setChurnDays(e.target.value)}
                   className="w-full px-4 py-3 bg-input-bg border-b-2 border-input-focus rounded-t-md text-sm text-text-primary focus:outline-none"
+                  required
                 />
               </div>
 
               <div>
                 <label className="block text-xs font-bold text-text-secondary uppercase mb-1">
-                  Package / Plan (Optional)
+                  Package / Plan *
                 </label>
                 <input
                   type="text"
@@ -180,6 +207,37 @@ export const AddCustomerPage: React.FC = () => {
                   onChange={(e) => setPackagePlan(e.target.value)}
                   placeholder="e.g. 200 Mbps"
                   className="w-full px-4 py-3 bg-input-bg border-b-2 border-input-focus rounded-t-md text-sm text-text-primary focus:outline-none"
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-bold text-text-secondary uppercase mb-1">
+                  POD Station *
+                </label>
+                <input
+                  type="text"
+                  value={podStation}
+                  onChange={(e) => setPodStation(e.target.value)}
+                  placeholder="e.g. Kathmandu"
+                  className="w-full px-4 py-3 bg-input-bg border-b-2 border-input-focus rounded-t-md text-sm text-text-primary focus:outline-none"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-text-secondary uppercase mb-1">
+                  POD *
+                </label>
+                <input
+                  type="text"
+                  value={pod}
+                  onChange={(e) => setPod(e.target.value)}
+                  placeholder="e.g. POD-01"
+                  className="w-full px-4 py-3 bg-input-bg border-b-2 border-input-focus rounded-t-md text-sm text-text-primary focus:outline-none"
+                  required
                 />
               </div>
             </div>

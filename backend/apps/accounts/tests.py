@@ -113,6 +113,8 @@ class D2DBusinessLogicTests(TestCase):
             'phone_number': '9811111111',
             'churn_days': 15,
             'package': '150 Mbps',
+            'pod_station': 'Kathmandu',
+            'pod': 'POD-01',
             'additional_notes': 'Met on door-to-door visit'
         })
         self.assertEqual(resp.status_code, status.HTTP_201_CREATED)

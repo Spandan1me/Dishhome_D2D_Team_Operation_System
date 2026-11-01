@@ -14,8 +14,8 @@ from apps.audit.models import AuditLog, AuditAction
 
 class TemplateDownloadView(views.APIView):
     """
-    Download the standard 5-column Excel upload template.
-    Columns: Customer ID, Customer Name, Phone Number, No. of Churn Days, Package.
+    Download the standard 7-column Excel upload template.
+    Columns: Customer ID, Customer Name, Phone Number, No. of Churn Days, Package, POD Station, POD.
     """
     permission_classes = [IsSupervisorOrAdmin]
 
@@ -127,6 +127,8 @@ class ConfirmImportView(views.APIView):
                         'phone_number': row.get('phone_number', ''),
                         'churn_days': row.get('churn_days', 0),
                         'package': row.get('package', ''),
+                        'pod_station': row.get('pod_station', ''),
+                        'pod': row.get('pod', ''),
                         'record_source': RecordSource.SUPERVISOR_UPLOAD,
                         'review_status': ReviewStatus.APPROVED,
                         'created_by': request.user
@@ -141,6 +143,10 @@ class ConfirmImportView(views.APIView):
                     customer.churn_days = row.get('churn_days', customer.churn_days)
                     if row.get('package'):
                         customer.package = row.get('package')
+                    if row.get('pod_station'):
+                        customer.pod_station = row.get('pod_station')
+                    if row.get('pod'):
+                        customer.pod = row.get('pod')
                     customer.save()
 
                 # Link to batch record
