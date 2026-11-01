@@ -29,6 +29,7 @@ export const VisitFormPage: React.FC = () => {
 
   // Form State
   const [visitStatus, setVisitStatus] = useState('COMPLETED');
+  const [visitCategory, setVisitCategory] = useState('');
   const [remark, setRemark] = useState('');
   const [switchingReason, setSwitchingReason] = useState('');
   const [switchingTo, setSwitchingTo] = useState('');
@@ -378,15 +379,18 @@ export const VisitFormPage: React.FC = () => {
     stopCamera();
   };
 
-  const isSwitchingToIsp = remark === 'Switching to another ISP';
-  const requiresSwitchingReason = [
-    'Switching to another ISP',
-    'Denied - Higher pricing than other ISPs',
-    'Denied — Higher pricing than other ISPs',
-    'Highly dissatisfied after price increment',
-    'Denied - Poor service',
-    'Denied — Poor service'
-  ].includes(remark);
+  const selectedCategoryConfig = (choices.categories || []).find((item: any) => item.value === visitCategory);
+  const remarksForCategory = selectedCategoryConfig?.remarks || [];
+  const remarks1Options = selectedCategoryConfig?.remarks_1 || choices.remarks_1 || [];
+  const isRouterCollection = visitCategory === 'Router Collection';
+  const routerIspOptions = switchingReason === 'Switched to other ISP'
+    ? ['CG Net', 'WorldLink', 'Vainet', 'Classic Tech', 'Subisu', 'NT Fiber', 'Local ISP', 'WiFi Nepal', 'Not specified (another ISP)']
+    : switchingReason === 'Still not switched to other ISP'
+      ? ['Date use', 'Sharing basis', 'Out of valley/home/abroad', 'Internet not using']
+      : [];
+  const ispOptions = isRouterCollection ? routerIspOptions : (selectedCategoryConfig?.isps || choices.isps || choices.switching_to_isps || []);
+  const showRouterIsp = isRouterCollection && !!switchingReason;
+  const isSwitchingToIsp = isRouterCollection && switchingReason === 'Switched to other ISP';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -394,16 +398,24 @@ export const VisitFormPage: React.FC = () => {
       setError('No customer selected for visit.');
       return;
     }
+    if (!visitCategory) {
+      setError('Please select a visit category.');
+      return;
+    }
     if (!remark) {
-      setError('Please select a Follow-up Remark.');
+      setError('Please select a remark.');
+      return;
+    }
+    if (isRouterCollection && !switchingReason) {
+      setError('Please select a router collection remarks option.');
       return;
     }
     if (isSwitchingToIsp && !switchingTo) {
-      setError('Please select which ISP the customer is switching to.');
+      setError('Please select the ISP for the router collection record.');
       return;
     }
-    if (requiresSwitchingReason && !switchingReason) {
-      setError('Please specify the switching / churn reason.');
+    if (showRouterIsp && switchingTo && !routerIspOptions.includes(switchingTo)) {
+      setError('Please select a valid ISP for the selected router collection remark.');
       return;
     }
     if (photoUploadState === 'UPLOADING' || videoUploadState === 'UPLOADING') {
@@ -417,6 +429,7 @@ export const VisitFormPage: React.FC = () => {
 
       const payload: Record<string, string | number | null> = {
         customer_id: customer.id,
+        visit_category: visitCategory,
         visit_status: visitStatus,
         follow_up_remark: remark,
         switching_reason: switchingReason,
@@ -575,70 +588,94 @@ export const VisitFormPage: React.FC = () => {
             </select>
           </div>
 
-          {/* Follow-up Remark (19 choices) */}
           <div>
             <label className="block text-xs font-bold text-text-secondary uppercase mb-1">
-              Follow-up Remark * (Select Exact Business Finding)
+              Category *
             </label>
             <select
-              value={remark}
+              value={visitCategory}
               onChange={(e) => {
-                setRemark(e.target.value);
-                if (e.target.value !== 'Switching to another ISP') {
-                  setSwitchingTo('');
-                }
+                setVisitCategory(e.target.value);
+                setRemark('');
+                setSwitchingReason('');
+                setSwitchingTo('');
               }}
               className="w-full px-4 py-3 bg-input-bg border-b-2 border-input-focus rounded-t-md text-sm font-semibold text-text-primary focus:outline-none"
               required
             >
-              <option value="">-- Select Follow-up Remark --</option>
-              {choices.remarks.map((r: string, idx: number) => (
-                <option key={idx} value={r}>
-                  {idx + 1}. {r}
+              <option value="">-- Select Category --</option>
+              {(choices.categories || []).map((category: any, idx: number) => (
+                <option key={idx} value={category.value}>
+                  {category.label}
                 </option>
               ))}
             </select>
           </div>
 
-          {/* Conditional: Switching To (9 competitor ISPs) */}
-          {isSwitchingToIsp && (
+          {visitCategory && (
+            <div>
+              <label className="block text-xs font-bold text-text-secondary uppercase mb-1">
+                Remarks *
+              </label>
+              <select
+                value={remark}
+                onChange={(e) => {
+                  setRemark(e.target.value);
+                  setSwitchingReason('');
+                  setSwitchingTo('');
+                }}
+                className="w-full px-4 py-3 bg-input-bg border-b-2 border-input-focus rounded-t-md text-sm font-semibold text-text-primary focus:outline-none"
+                required
+              >
+                <option value="">-- Select Remarks --</option>
+                {(remarksForCategory.length ? remarksForCategory : choices.remarks).map((r: string, idx: number) => (
+                  <option key={idx} value={r}>
+                    {r}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {isRouterCollection && (
             <div className="p-4 bg-amber-50/60 border border-amber-200 rounded-xl space-y-2 animate-fadeIn">
               <label className="block text-xs font-bold text-warning uppercase">
-                Destination ISP * (Switching To)
+                Remarks 1 *
+              </label>
+              <select
+                value={switchingReason}
+                onChange={(e) => {
+                  setSwitchingReason(e.target.value);
+                  setSwitchingTo('');
+                }}
+                className="w-full px-4 py-3 bg-white border border-border rounded-lg text-sm font-medium text-text-primary focus:outline-none focus:border-brand-red"
+                required
+              >
+                <option value="">-- Select Remarks 1 --</option>
+                {remarks1Options.map((rs: string, idx: number) => (
+                  <option key={idx} value={rs}>
+                    {rs}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {showRouterIsp && (
+            <div className="p-4 bg-amber-50/60 border border-amber-200 rounded-xl space-y-2 animate-fadeIn">
+              <label className="block text-xs font-bold text-warning uppercase">
+                ISP {isSwitchingToIsp ? '*' : ''}
               </label>
               <select
                 value={switchingTo}
                 onChange={(e) => setSwitchingTo(e.target.value)}
                 className="w-full px-4 py-3 bg-white border border-border rounded-lg text-sm font-medium text-text-primary focus:outline-none focus:border-brand-red"
-                required
+                required={isSwitchingToIsp}
               >
-                <option value="">-- Select Destination ISP --</option>
-                {choices.switching_to_isps.map((isp: string, idx: number) => (
+                <option value="">-- Select ISP --</option>
+                {ispOptions.map((isp: string, idx: number) => (
                   <option key={idx} value={isp}>
                     {isp}
-                  </option>
-                ))}
-                <option value="Other / Unknown">Other / Unknown</option>
-              </select>
-            </div>
-          )}
-
-          {/* Conditional: Switching Reason (9 reasons) */}
-          {requiresSwitchingReason && (
-            <div className="p-4 bg-amber-50/60 border border-amber-200 rounded-xl space-y-2 animate-fadeIn">
-              <label className="block text-xs font-bold text-warning uppercase">
-                Switching / Churn Reason *
-              </label>
-              <select
-                value={switchingReason}
-                onChange={(e) => setSwitchingReason(e.target.value)}
-                className="w-full px-4 py-3 bg-white border border-border rounded-lg text-sm font-medium text-text-primary focus:outline-none focus:border-brand-red"
-                required
-              >
-                <option value="">-- Select Switching Reason --</option>
-                {choices.switching_reasons.map((rs: string, idx: number) => (
-                  <option key={idx} value={rs}>
-                    {rs}
                   </option>
                 ))}
               </select>

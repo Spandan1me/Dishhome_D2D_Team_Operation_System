@@ -12,6 +12,9 @@ from .models import (
     VisitLog,
     VisitEvidenceUpload,
     VisitStatus,
+    VISIT_REMARKS_STRUCTURE,
+    ROUTER_COLLECTION_REMARKS_1,
+    ROUTER_COLLECTION_ISPS,
     FOLLOW_UP_REMARKS,
     SWITCHING_REASONS,
     SWITCHING_TO_ISPS
@@ -37,7 +40,19 @@ class VisitChoicesView(views.APIView):
 
     def get(self, request):
         return Response({
+            'categories': [
+                {
+                    'value': item['category'],
+                    'label': item['category'],
+                    'remarks': item['remarks'],
+                    'remarks_1': item.get('remarks_1', []),
+                    'isps': item.get('isps', []),
+                }
+                for item in VISIT_REMARKS_STRUCTURE
+            ],
             'remarks': FOLLOW_UP_REMARKS,
+            'remarks_1': ROUTER_COLLECTION_REMARKS_1,
+            'isps': ROUTER_COLLECTION_ISPS,
             'switching_reasons': SWITCHING_REASONS,
             'switching_to_isps': SWITCHING_TO_ISPS,
             'visit_statuses': [
@@ -70,9 +85,21 @@ class VisitListCreateView(views.APIView):
         if visit_status:
             qs = qs.filter(visit_status=visit_status)
 
+        category = request.query_params.get('category')
+        if category:
+            qs = qs.filter(visit_category=category)
+
         remark = request.query_params.get('remark')
         if remark:
             qs = qs.filter(follow_up_remark=remark)
+
+        remarks_1 = request.query_params.get('remarks_1') or request.query_params.get('switching_reason')
+        if remarks_1:
+            qs = qs.filter(switching_reason=remarks_1)
+
+        isp = request.query_params.get('isp') or request.query_params.get('switching_to')
+        if isp:
+            qs = qs.filter(switching_to=isp)
 
         has_gps = request.query_params.get('has_gps')
         if has_gps == 'true':
@@ -146,6 +173,7 @@ class VisitListCreateView(views.APIView):
                 customer=customer,
                 agent=request.user,
                 visit_status=serializer.validated_data.get('visit_status', VisitStatus.COMPLETED),
+                visit_category=serializer.validated_data.get('visit_category', ''),
                 follow_up_remark=serializer.validated_data['follow_up_remark'],
                 switching_reason=serializer.validated_data.get('switching_reason', ''),
                 switching_to=serializer.validated_data.get('switching_to', ''),

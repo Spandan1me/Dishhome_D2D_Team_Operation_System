@@ -251,32 +251,36 @@ export const ReportsPage: React.FC = () => {
               <thead className="bg-gray-100 text-text-secondary uppercase border-b border-border">
                 <tr>
                   <th className="px-4 py-3">Customer ID</th>
+                  <th className="px-4 py-3">Customer Name</th>
                   <th className="px-4 py-3">Agent</th>
+                  <th className="px-4 py-3">Visit Date</th>
+                  <th className="px-4 py-3">Category</th>
+                  <th className="px-4 py-3">Remarks</th>
+                  <th className="px-4 py-3">Remarks 1</th>
+                  <th className="px-4 py-3">ISP</th>
                   <th className="px-4 py-3">Status</th>
-                  <th className="px-4 py-3">Follow-up Remark</th>
-                  <th className="px-4 py-3">Switching Reason</th>
-                  <th className="px-4 py-3">Switching To</th>
                   <th className="px-4 py-3">GPS Location</th>
-                  <th className="px-4 py-3">Completed On</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
                 {reportData.map((row, idx) => (
                   <tr key={idx} className="hover:bg-brand-red-light/20">
                     <td className="px-4 py-2.5 font-bold font-mono text-brand-red-dark">{row.customer_id}</td>
+                    <td className="px-4 py-2.5 font-medium text-text-primary">{row.customer_name}</td>
                     <td className="px-4 py-2.5 font-semibold">{row.agent_name}</td>
+                    <td className="px-4 py-2.5 text-text-secondary">{row.completed_at}</td>
+                    <td className="px-4 py-2.5 font-medium text-text-primary">{row.visit_category || '-'}</td>
+                    <td className="px-4 py-2.5 font-medium text-text-primary">{row.follow_up_remark || '-'}</td>
+                    <td className="px-4 py-2.5 text-text-secondary">{row.switching_reason || '-'}</td>
+                    <td className="px-4 py-2.5 font-semibold text-danger">{row.switching_to || '-'}</td>
                     <td className="px-4 py-2.5">
                       <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-success">
                         {row.visit_status}
                       </span>
                     </td>
-                    <td className="px-4 py-2.5 font-medium text-text-primary">{row.follow_up_remark}</td>
-                    <td className="px-4 py-2.5 text-text-secondary">{row.switching_reason || '-'}</td>
-                    <td className="px-4 py-2.5 font-semibold text-danger">{row.switching_to || '-'}</td>
                     <td className="px-4 py-2.5 text-[11px] font-mono">
                       {row.gps_latitude ? `${row.gps_latitude}, ${row.gps_longitude}` : <em className="text-text-secondary">No GPS</em>}
                     </td>
-                    <td className="px-4 py-2.5 text-text-secondary">{row.completed_at}</td>
                   </tr>
                 ))}
               </tbody>

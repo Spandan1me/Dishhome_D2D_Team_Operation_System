@@ -15,54 +15,137 @@ class VisitStatus(models.TextChoices):
     UNABLE_TO_REACH = 'UNABLE_TO_REACH', 'Unable to Reach'
     FOLLOW_UP_REQUIRED = 'FOLLOW_UP_REQUIRED', 'Follow-up Required'
 
-# 19 exact business remarks
+VISIT_REMARKS_STRUCTURE = [
+    {
+        "category": "Call not received/Not Connected",
+        "remarks": [
+            "Busy/ Not Available",
+            "Wrong Number",
+        ],
+    },
+    {
+        "category": "Financial issue",
+        "remarks": [
+            "Will Recharge After Financial Arrangement",
+            "Requested some time to arrange payment",
+        ],
+    },
+    {
+        "category": "Interested — Callback required",
+        "remarks": [
+            "Will recharge after 3 days",
+            "Will recharge after 7 days",
+            "Will recharge after 15 days",
+            "Relocation required",
+            "Extra benefit required",
+            "Using sharing basis",
+            "Due Out of Valley",
+            "Due to drop wire charge policy",
+        ],
+    },
+    {
+        "category": "Ready To recharge",
+        "remarks": [
+            "Will recharge today",
+            "Recharge done",
+            "Package Upgrade/Recharge done",
+            "Extra benefit required",
+            "Using sharing basis",
+            "Due Out of Valley",
+            "Due to drop wire charge policy",
+        ],
+    },
+    {
+        "category": "Interested — Will recharge soon",
+        "remarks": [
+            "Will recharge after 3 days",
+            "Will recharge after 7 days",
+            "Will recharge after 15 days",
+        ],
+    },
+    {
+        "category": "Waiting for festival offer",
+        "remarks": [
+            "Extra benefit required",
+            "Low bandwidth Package",
+            "Cash discount",
+            "BTL/ Special renew package price",
+        ],
+    },
+    {
+        "category": "Router Collection",
+        "remarks": [
+            "Poor Customer Support / Service Response",
+            "Due to bad service",
+            "Higher Price vs. Competitors",
+            "Competitor's Better Offer",
+            "Multiple Connection of DishHome Internet",
+            "Not Ready to provide Router",
+            "Customer wants additional offer",
+            "Highly dissatisfied after price increment",
+            "Network unavailable/relocation cancelled",
+            "Out of valley / abroad",
+        ],
+        "remarks_1": [
+            "Switched to other ISP",
+            "Still not switched to other ISP",
+        ],
+        "isps": [
+            "CG Net",
+            "WorldLink",
+            "Vainet",
+            "Classic Tech",
+            "Subisu",
+            "NT Fiber",
+            "Local ISP",
+            "WiFi Nepal",
+            "Not specified (another ISP)",
+            "Date use",
+            "Sharing basis",
+            "Out of valley/home/abroad",
+            "Internet not using",
+        ],
+    },
+]
+
 FOLLOW_UP_REMARKS = [
-    "Call not received",
-    "Connected",
-    "Busy - Call back later",
-    "Interested - Will recharge soon",
-    "Ready to recharge",
-    "Ready to recharge within 3 days",
-    "Ready to recharge within 7 days",
-    "Interested - Callback required",
-    "Financial issue",
-    "Waiting for festival offer",
-    "Router refund in process",
-    "Non-fibernet user (Invalid KYC)",
-    "Denied - Higher pricing than other ISPs",
-    "Highly dissatisfied after price increment",
-    "Denied - Poor service",
-    "Multiple DishHome Internet connections",
-    "Switching to another ISP",
-    "Credit done",
-    "Customer wants additional offer",
+    remark
+    for category in VISIT_REMARKS_STRUCTURE
+    for remark in category['remarks']
 ]
 
-# 9 exact switching reasons
-SWITCHING_REASONS = [
-    "High package price of DH",
-    "Low package price than ours",
-    "Better Service Quality",
-    "Network unavailable/relocation cancelled",
-    "Drop Wire Charge Policy",
-    "Multiple connection",
-    "Using Customer's Relative Internet",
-    "Better Offers",
-    "Due to bad service",
+ROUTER_COLLECTION_REMARKS_1 = [
+    "Switched to other ISP",
+    "Still not switched to other ISP",
 ]
 
-# 9 exact competitor ISPs
-SWITCHING_TO_ISPS = [
-    "Worldlink",
+ROUTER_COLLECTION_SWITCHED_ISPS = [
+    "CG Net",
+    "WorldLink",
+    "Vainet",
+    "Classic Tech",
+    "Subisu",
     "NT Fiber",
-    "CG net",
-    "Vianet",
-    "Classic tech",
-    "Sky tv",
-    "Local net",
-    "smart link",
-    "Wifi Nepal",
+    "Local ISP",
+    "WiFi Nepal",
+    "Not specified (another ISP)",
 ]
+
+ROUTER_COLLECTION_NOT_SWITCHED_ISPS = [
+    "Date use",
+    "Sharing basis",
+    "Out of valley/home/abroad",
+    "Internet not using",
+]
+
+ROUTER_COLLECTION_ISPS = ROUTER_COLLECTION_SWITCHED_ISPS + ROUTER_COLLECTION_NOT_SWITCHED_ISPS
+ROUTER_COLLECTION_ISP_OPTIONS = {
+    'Switched to other ISP': ROUTER_COLLECTION_SWITCHED_ISPS,
+    'Still not switched to other ISP': ROUTER_COLLECTION_NOT_SWITCHED_ISPS,
+}
+
+SWITCHING_REASONS = ROUTER_COLLECTION_REMARKS_1
+SWITCHING_TO_ISPS = ROUTER_COLLECTION_ISPS
 
 class VisitLog(models.Model):
     customer = models.ForeignKey(
@@ -81,6 +164,7 @@ class VisitLog(models.Model):
         default=VisitStatus.COMPLETED,
         db_index=True
     )
+    visit_category = models.CharField(max_length=80, blank=True, default='', db_index=True)
     follow_up_remark = models.CharField(max_length=100, db_index=True)
     switching_reason = models.CharField(max_length=100, blank=True)
     switching_to = models.CharField(max_length=50, blank=True)

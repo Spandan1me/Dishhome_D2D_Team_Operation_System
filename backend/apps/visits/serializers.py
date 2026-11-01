@@ -4,6 +4,11 @@ from .models import (
     VisitLog,
     VisitStatus,
     FOLLOW_UP_REMARKS,
+    VISIT_REMARKS_STRUCTURE,
+    ROUTER_COLLECTION_REMARKS_1,
+    ROUTER_COLLECTION_ISPS,
+    ROUTER_COLLECTION_SWITCHED_ISPS,
+    ROUTER_COLLECTION_NOT_SWITCHED_ISPS,
     SWITCHING_REASONS,
     SWITCHING_TO_ISPS
 )
@@ -25,7 +30,7 @@ class VisitLogSerializer(serializers.ModelSerializer):
             'id', 'customer', 'customer_code', 'customer_name',
             'phone_number', 'churn_days', 'package', 'agent',
             'agent_name', 'agent_username', 'visit_status',
-            'follow_up_remark', 'switching_reason', 'switching_to',
+            'visit_category', 'follow_up_remark', 'switching_reason', 'switching_to',
             'notes', 'gps_latitude', 'gps_longitude', 'gps_accuracy',
             'gps_captured_at', 'completed_at', 'created_at',
             'has_photo', 'has_video'
@@ -39,6 +44,7 @@ class VisitLogSerializer(serializers.ModelSerializer):
 
 class RecordVisitSerializer(serializers.Serializer):
     customer_id = serializers.CharField(required=True)
+    visit_category = serializers.CharField(required=False, allow_blank=True)
     visit_status = serializers.ChoiceField(choices=VisitStatus.choices, default=VisitStatus.COMPLETED)
     follow_up_remark = serializers.CharField(required=True)
     switching_reason = serializers.CharField(required=False, allow_blank=True)
@@ -76,8 +82,24 @@ class RecordVisitSerializer(serializers.Serializer):
         return video
 
     def validate(self, attrs):
+        raw_category = (attrs.get('visit_category') or '').strip()
+        if raw_category:
+            category_matches = [config['category'] for config in VISIT_REMARKS_STRUCTURE if config['category'].lower() == raw_category.lower()]
+            if not category_matches:
+                raise serializers.ValidationError({
+                    'visit_category': f"Invalid category '{raw_category}'."
+                })
+            attrs['visit_category'] = category_matches[0]
+        else:
+            raw_remark = (attrs.get('follow_up_remark') or '').strip()
+            matched_category = None
+            for config in VISIT_REMARKS_STRUCTURE:
+                if any(r.lower() == raw_remark.lower() for r in config['remarks']):
+                    matched_category = config['category']
+                    break
+            attrs['visit_category'] = matched_category or ''
+
         raw_remark = (attrs.get('follow_up_remark') or '').strip()
-        # Normalize dash variants and replacement characters
         norm_remark = (
             raw_remark
             .replace('—', '-')
@@ -86,70 +108,66 @@ class RecordVisitSerializer(serializers.Serializer):
         )
 
         matched_remark = None
-        for r in FOLLOW_UP_REMARKS:
-            if r.lower() == norm_remark.lower():
-                matched_remark = r
+        matched_category = None
+        for config in VISIT_REMARKS_STRUCTURE:
+            for r in config['remarks']:
+                if r.lower() == norm_remark.lower():
+                    matched_remark = r
+                    matched_category = config['category']
+                    break
+            if matched_remark:
                 break
 
         if not matched_remark:
             raise serializers.ValidationError({
                 'follow_up_remark': f"Invalid follow-up remark '{raw_remark}'. Please choose from standard list."
             })
+
         attrs['follow_up_remark'] = matched_remark
 
-        raw_reason = (attrs.get('switching_reason') or '').strip()
-        norm_reason = (
-            raw_reason
-            .replace('’', "'")
-            .replace('‘', "'")
-            .replace('\ufffd', "'")
-        )
-        if norm_reason:
-            matched_reason = None
-            for r in SWITCHING_REASONS:
-                if r.lower() == norm_reason.lower():
-                    matched_reason = r
-                    break
-            attrs['switching_reason'] = matched_reason if matched_reason else norm_reason
+        if attrs.get('visit_category') and attrs['visit_category'] and matched_category and attrs['visit_category'] != matched_category:
+            raise serializers.ValidationError({
+                'visit_category': f"Selected category '{attrs['visit_category']}' does not match remark '{matched_remark}'."
+            })
+
+        if attrs.get('visit_category'):
+            attrs['visit_category'] = matched_category or attrs['visit_category']
+
+        if attrs['visit_category'] == 'Router Collection':
+            raw_reason = (attrs.get('switching_reason') or '').strip()
+            if not raw_reason:
+                raise serializers.ValidationError({
+                    'switching_reason': 'Please select a router collection remarks option.'
+                })
+            if raw_reason not in ROUTER_COLLECTION_REMARKS_1:
+                raise serializers.ValidationError({
+                    'switching_reason': f"Invalid router collection remark '{raw_reason}'."
+                })
+            attrs['switching_reason'] = raw_reason
+
+            switching_to = (attrs.get('switching_to') or '').strip()
+            valid_isps = (
+                ROUTER_COLLECTION_SWITCHED_ISPS
+                if raw_reason == 'Switched to other ISP'
+                else ROUTER_COLLECTION_NOT_SWITCHED_ISPS
+            )
+            if raw_reason == 'Switched to other ISP' and not switching_to:
+                raise serializers.ValidationError({
+                    'switching_to': 'Please select the ISP for this router collection record.'
+                })
+            if switching_to and switching_to not in valid_isps:
+                raise serializers.ValidationError({
+                    'switching_to': f"Invalid ISP '{switching_to}' for router collection remark '{raw_reason}'."
+                })
+            attrs['switching_to'] = switching_to
         else:
-            attrs['switching_reason'] = ''
+            attrs['switching_reason'] = (attrs.get('switching_reason') or '').strip()
+            attrs['switching_to'] = (attrs.get('switching_to') or '').strip()
 
-        switching_to = (attrs.get('switching_to') or '').strip()
-        attrs['switching_to'] = switching_to
-
-        # Normalize GPS coordinates to 7 decimal places for DecimalField storage
         if attrs.get('gps_latitude') is not None:
             attrs['gps_latitude'] = round(float(attrs['gps_latitude']), 7)
         if attrs.get('gps_longitude') is not None:
             attrs['gps_longitude'] = round(float(attrs['gps_longitude']), 7)
-
-        # Rule: Switching To is required when remark is 'Switching to another ISP'
-        if matched_remark == "Switching to another ISP":
-            if not switching_to:
-                raise serializers.ValidationError({
-                    'switching_to': "Please select which ISP the customer is switching to."
-                })
-            if switching_to not in SWITCHING_TO_ISPS and switching_to != "Other / Unknown":
-                raise serializers.ValidationError({
-                    'switching_to': f"Invalid destination ISP '{switching_to}'."
-                })
-
-        # Rule: If customer is switching or reasons apply
-        reasons_requiring_classification = [
-            "Switching to another ISP",
-            "Denied - Higher pricing than other ISPs",
-            "Highly dissatisfied after price increment",
-            "Denied - Poor service"
-        ]
-        if matched_remark in reasons_requiring_classification:
-            if not attrs.get('switching_reason'):
-                raise serializers.ValidationError({
-                    'switching_reason': "Please specify the switching / churn reason."
-                })
-            if attrs['switching_reason'] not in SWITCHING_REASONS:
-                raise serializers.ValidationError({
-                    'switching_reason': f"Invalid switching reason '{attrs['switching_reason']}'."
-                })
 
         return attrs
 

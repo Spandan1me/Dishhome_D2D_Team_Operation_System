@@ -79,9 +79,29 @@ class VisitFindingsReportView(views.APIView):
         if status_val:
             visits = visits.filter(visit_status=status_val)
 
+        category = request.query_params.get('category')
+        if category:
+            visits = visits.filter(visit_category=category)
+
         remark = request.query_params.get('remark')
         if remark:
             visits = visits.filter(follow_up_remark=remark)
+
+        remarks_1 = request.query_params.get('remarks_1') or request.query_params.get('switching_reason')
+        if remarks_1:
+            visits = visits.filter(switching_reason=remarks_1)
+
+        isp = request.query_params.get('isp') or request.query_params.get('switching_to')
+        if isp:
+            visits = visits.filter(switching_to=isp)
+
+        date_from = request.query_params.get('date_from')
+        if date_from:
+            visits = visits.filter(completed_at__date__gte=date_from)
+
+        date_to = request.query_params.get('date_to')
+        if date_to:
+            visits = visits.filter(completed_at__date__lte=date_to)
 
         data = [
             {
@@ -92,6 +112,7 @@ class VisitFindingsReportView(views.APIView):
                 'package': v.customer.package,
                 'agent_name': v.agent.full_name or v.agent.username,
                 'visit_status': v.get_visit_status_display(),
+                'visit_category': v.visit_category,
                 'follow_up_remark': v.follow_up_remark,
                 'switching_reason': v.switching_reason,
                 'switching_to': v.switching_to,
@@ -238,31 +259,48 @@ class ExportReportView(views.APIView):
         elif report_type == 'visits':
             filename_prefix = "Visit_Findings"
             headers = [
-                'Customer ID', 'Customer Name', 'Phone Number',
-                'Churn Days', 'Package', 'Agent Name',
-                'Visit Status', 'Follow-up Remark', 'Switching Reason',
-                'Switching To', 'Notes', 'GPS Latitude', 'GPS Longitude',
-                'Completed At', 'Record Source'
+                'Customer ID', 'Customer Name', 'Agent Name',
+                'Visit Date', 'Category', 'Remarks', 'Remarks 1', 'ISP',
+                'Visit Status', 'Notes', 'GPS Latitude', 'GPS Longitude',
+                'Record Source'
             ]
             qs = VisitLog.objects.select_related('customer', 'agent').all()
             if not request.user.is_admin_user:
                 qs = qs.filter(agent__in=request.user.supervised_agents.all())
+
+            category = request.query_params.get('category')
+            if category:
+                qs = qs.filter(visit_category=category)
+            remark = request.query_params.get('remark')
+            if remark:
+                qs = qs.filter(follow_up_remark=remark)
+            remarks_1 = request.query_params.get('remarks_1') or request.query_params.get('switching_reason')
+            if remarks_1:
+                qs = qs.filter(switching_reason=remarks_1)
+            isp = request.query_params.get('isp') or request.query_params.get('switching_to')
+            if isp:
+                qs = qs.filter(switching_to=isp)
+            date_from = request.query_params.get('date_from')
+            if date_from:
+                qs = qs.filter(completed_at__date__gte=date_from)
+            date_to = request.query_params.get('date_to')
+            if date_to:
+                qs = qs.filter(completed_at__date__lte=date_to)
+
             for v in qs:
                 rows.append([
                     v.customer.customer_id,
                     v.customer.customer_name,
-                    v.customer.phone_number,
-                    v.customer.churn_days,
-                    v.customer.package,
                     v.agent.full_name or v.agent.username,
-                    v.get_visit_status_display(),
+                    v.completed_at.strftime('%Y-%m-%d %H:%M') if v.completed_at else '',
+                    v.visit_category,
                     v.follow_up_remark,
                     v.switching_reason,
                     v.switching_to,
+                    v.get_visit_status_display(),
                     v.notes,
                     str(v.gps_latitude) if v.gps_latitude else '',
                     str(v.gps_longitude) if v.gps_longitude else '',
-                    v.completed_at.strftime('%Y-%m-%d %H:%M') if v.completed_at else '',
                     v.customer.get_record_source_display()
                 ])
 
