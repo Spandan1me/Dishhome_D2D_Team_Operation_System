@@ -233,28 +233,39 @@ export const VisitFormPage: React.FC = () => {
   const openCamera = async (mode: 'PHOTO' | 'VIDEO') => {
     setCameraError(null);
     setEvidenceError(null);
+    setCameraMode(mode);
+    setCameraStream(null);
+
     if (!customer?.id) {
       setCameraError('Select a customer before capturing visit evidence.');
-      setCameraMode(mode);
       return;
     }
     if (!navigator.mediaDevices?.getUserMedia) {
       setCameraError('Camera access is not available. Open this page over HTTPS and allow camera permission.');
-      setCameraMode(mode);
       return;
     }
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        audio: mode === 'VIDEO',
-        video: { facingMode: { ideal: 'environment' } },
+        audio: mode === 'VIDEO' ? { echoCancellation: true, noiseSuppression: true } : false,
+        video: {
+          facingMode: { ideal: 'environment' },
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+          frameRate: { ideal: 30, max: 30 },
+        },
       });
       setCameraStream(stream);
-      setCameraMode(mode);
+      if (cameraPreviewRef.current) {
+        cameraPreviewRef.current.srcObject = stream;
+        cameraPreviewRef.current.muted = true;
+        cameraPreviewRef.current.playsInline = true;
+        void cameraPreviewRef.current.play().catch(() => undefined);
+      }
     } catch (cameraRequestError) {
       console.error('Camera access failed', cameraRequestError);
       setCameraError('Could not open the camera. Allow camera permission and try again.');
-      setCameraMode(mode);
+      setCameraStream(null);
     }
   };
 
