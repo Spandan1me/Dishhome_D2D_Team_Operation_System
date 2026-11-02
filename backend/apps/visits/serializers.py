@@ -83,21 +83,17 @@ class RecordVisitSerializer(serializers.Serializer):
 
     def validate(self, attrs):
         raw_category = (attrs.get('visit_category') or '').strip()
+        selected_category = ''
         if raw_category:
             category_matches = [config['category'] for config in VISIT_REMARKS_STRUCTURE if config['category'].lower() == raw_category.lower()]
             if not category_matches:
                 raise serializers.ValidationError({
                     'visit_category': f"Invalid category '{raw_category}'."
                 })
-            attrs['visit_category'] = category_matches[0]
+            selected_category = category_matches[0]
+            attrs['visit_category'] = selected_category
         else:
-            raw_remark = (attrs.get('follow_up_remark') or '').strip()
-            matched_category = None
-            for config in VISIT_REMARKS_STRUCTURE:
-                if any(r.lower() == raw_remark.lower() for r in config['remarks']):
-                    matched_category = config['category']
-                    break
-            attrs['visit_category'] = matched_category or ''
+            attrs['visit_category'] = ''
 
         raw_remark = (attrs.get('follow_up_remark') or '').strip()
         norm_remark = (
@@ -107,31 +103,37 @@ class RecordVisitSerializer(serializers.Serializer):
             .replace('\ufffd', '-')
         )
 
-        matched_remark = None
-        matched_category = None
-        for config in VISIT_REMARKS_STRUCTURE:
-            for r in config['remarks']:
-                if r.lower() == norm_remark.lower():
-                    matched_remark = r
-                    matched_category = config['category']
-                    break
-            if matched_remark:
-                break
+        matching_configs = [
+            config for config in VISIT_REMARKS_STRUCTURE
+            if any(r.lower() == norm_remark.lower() for r in config['remarks'])
+        ]
 
-        if not matched_remark:
+        if not matching_configs:
             raise serializers.ValidationError({
                 'follow_up_remark': f"Invalid follow-up remark '{raw_remark}'. Please choose from standard list."
             })
 
+        matched_config = None
+        if selected_category:
+            matched_config = next(
+                (config for config in matching_configs if config['category'].lower() == selected_category.lower()),
+                None,
+            )
+        if not matched_config:
+            matched_config = matching_configs[0]
+
+        matched_remark = next(
+            r for r in matched_config['remarks']
+            if r.lower() == norm_remark.lower()
+        )
         attrs['follow_up_remark'] = matched_remark
 
-        if attrs.get('visit_category') and attrs['visit_category'] and matched_category and attrs['visit_category'] != matched_category:
+        if selected_category and matched_config['category'].lower() != selected_category.lower():
             raise serializers.ValidationError({
-                'visit_category': f"Selected category '{attrs['visit_category']}' does not match remark '{matched_remark}'."
+                'visit_category': f"Selected category '{selected_category}' does not match remark '{matched_remark}'."
             })
 
-        if attrs.get('visit_category'):
-            attrs['visit_category'] = matched_category or attrs['visit_category']
+        attrs['visit_category'] = matched_config['category']
 
         if attrs['visit_category'] == 'Router Collection':
             raw_reason = (attrs.get('switching_reason') or '').strip()

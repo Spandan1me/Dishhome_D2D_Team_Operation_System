@@ -52,6 +52,8 @@ class AllocationReportView(views.APIView):
                 'phone_number': a.customer.phone_number,
                 'churn_days': a.customer.churn_days,
                 'package': a.customer.package,
+                'pod_station': a.customer.pod_station,
+                'pod': a.customer.pod,
                 'record_source': a.customer.get_record_source_display(),
                 'assigned_agent': a.assigned_agent.full_name or a.assigned_agent.username,
                 'assigned_by': a.assigned_by.full_name if a.assigned_by else '',
@@ -110,6 +112,8 @@ class VisitFindingsReportView(views.APIView):
                 'phone_number': v.customer.phone_number,
                 'churn_days': v.customer.churn_days,
                 'package': v.customer.package,
+                'pod_station': v.customer.pod_station,
+                'pod': v.customer.pod,
                 'agent_name': v.agent.full_name or v.agent.username,
                 'visit_status': v.get_visit_status_display(),
                 'visit_category': v.visit_category,
@@ -233,7 +237,7 @@ class ExportReportView(views.APIView):
             filename_prefix = "Customer_Allocations"
             headers = [
                 'Customer ID', 'Customer Name', 'Phone Number',
-                'Churn Days', 'Package', 'Record Source',
+                'Churn Days', 'Package', 'Pod Station', 'Pod Name', 'Record Source',
                 'Assigned Agent', 'Assigned By', 'Assigned At', 'Status'
             ]
             qs = CustomerAssignment.objects.select_related('customer', 'assigned_agent', 'assigned_by').all()
@@ -249,6 +253,8 @@ class ExportReportView(views.APIView):
                     a.customer.phone_number,
                     a.customer.churn_days,
                     a.customer.package,
+                    a.customer.pod_station,
+                    a.customer.pod,
                     a.customer.get_record_source_display(),
                     a.assigned_agent.full_name or a.assigned_agent.username,
                     a.assigned_by.full_name if a.assigned_by else '',
@@ -259,7 +265,7 @@ class ExportReportView(views.APIView):
         elif report_type == 'visits':
             filename_prefix = "Visit_Findings"
             headers = [
-                'Customer ID', 'Customer Name', 'Agent Name',
+                'Customer ID', 'Customer Name', 'Pod Station', 'Pod Name', 'Agent Name',
                 'Visit Date', 'Category', 'Remarks', 'Remarks 1', 'ISP',
                 'Visit Status', 'Notes', 'GPS Latitude', 'GPS Longitude',
                 'Record Source'
@@ -291,6 +297,8 @@ class ExportReportView(views.APIView):
                 rows.append([
                     v.customer.customer_id,
                     v.customer.customer_name,
+                    v.customer.pod_station,
+                    v.customer.pod,
                     v.agent.full_name or v.agent.username,
                     v.completed_at.strftime('%Y-%m-%d %H:%M') if v.completed_at else '',
                     v.visit_category,

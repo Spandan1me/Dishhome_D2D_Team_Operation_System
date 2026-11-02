@@ -220,6 +220,8 @@ export const ReportsPage: React.FC = () => {
                   <th className="px-4 py-3">Phone</th>
                   <th className="px-4 py-3 text-right">Churn Days</th>
                   <th className="px-4 py-3">Package</th>
+                  <th className="px-4 py-3">Pod Station</th>
+                  <th className="px-4 py-3">Pod Name</th>
                   <th className="px-4 py-3">Assigned Agent</th>
                   <th className="px-4 py-3">Assigned On</th>
                   <th className="px-4 py-3">Status</th>
@@ -233,6 +235,8 @@ export const ReportsPage: React.FC = () => {
                     <td className="px-4 py-2.5 font-mono">{row.phone_number}</td>
                     <td className="px-4 py-2.5 text-right font-bold">{row.churn_days}</td>
                     <td className="px-4 py-2.5">{row.package}</td>
+                    <td className="px-4 py-2.5 font-medium text-text-primary">{row.pod_station || '-'}</td>
+                    <td className="px-4 py-2.5 font-medium text-text-primary">{row.pod || '-'}</td>
                     <td className="px-4 py-2.5 font-semibold text-text-primary">{row.assigned_agent}</td>
                     <td className="px-4 py-2.5 text-text-secondary">{row.assigned_at}</td>
                     <td className="px-4 py-2.5">
@@ -252,6 +256,8 @@ export const ReportsPage: React.FC = () => {
                 <tr>
                   <th className="px-4 py-3">Customer ID</th>
                   <th className="px-4 py-3">Customer Name</th>
+                  <th className="px-4 py-3">Pod Station</th>
+                  <th className="px-4 py-3">Pod Name</th>
                   <th className="px-4 py-3">Agent</th>
                   <th className="px-4 py-3">Visit Date</th>
                   <th className="px-4 py-3">Category</th>
@@ -267,6 +273,8 @@ export const ReportsPage: React.FC = () => {
                   <tr key={idx} className="hover:bg-brand-red-light/20">
                     <td className="px-4 py-2.5 font-bold font-mono text-brand-red-dark">{row.customer_id}</td>
                     <td className="px-4 py-2.5 font-medium text-text-primary">{row.customer_name}</td>
+                    <td className="px-4 py-2.5 font-medium text-text-primary">{row.pod_station || '-'}</td>
+                    <td className="px-4 py-2.5 font-medium text-text-primary">{row.pod || '-'}</td>
                     <td className="px-4 py-2.5 font-semibold">{row.agent_name}</td>
                     <td className="px-4 py-2.5 text-text-secondary">{row.completed_at}</td>
                     <td className="px-4 py-2.5 font-medium text-text-primary">{row.visit_category || '-'}</td>
