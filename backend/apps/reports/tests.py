@@ -2,6 +2,7 @@ from django.urls import reverse
 from rest_framework.test import APITestCase
 
 from apps.accounts.models import RoleChoices, User
+from apps.reports.services import normalize_export_value
 
 
 class ReportExportTests(APITestCase):
@@ -44,3 +45,8 @@ class ReportExportTests(APITestCase):
         )
 
         self.assertEqual(response.status_code, 400)
+
+    def test_normalize_export_value_keeps_blank_cells_empty(self):
+        self.assertEqual(normalize_export_value(None), '')
+        self.assertEqual(normalize_export_value(''), '')
+        self.assertEqual(normalize_export_value('Customer A'), 'Customer A')

@@ -273,14 +273,14 @@ export const ReportsPage: React.FC = () => {
                   <tr key={idx} className="hover:bg-brand-red-light/20">
                     <td className="px-4 py-2.5 font-bold font-mono text-brand-red-dark">{row.customer_id}</td>
                     <td className="px-4 py-2.5 font-medium text-text-primary">{row.customer_name}</td>
-                    <td className="px-4 py-2.5 font-medium text-text-primary">{row.pod_station || '-'}</td>
-                    <td className="px-4 py-2.5 font-medium text-text-primary">{row.pod || '-'}</td>
+                    <td className="px-4 py-2.5 font-medium text-text-primary">{row.pod_station ?? ''}</td>
+                    <td className="px-4 py-2.5 font-medium text-text-primary">{row.pod ?? ''}</td>
                     <td className="px-4 py-2.5 font-semibold">{row.agent_name}</td>
                     <td className="px-4 py-2.5 text-text-secondary">{row.completed_at}</td>
-                    <td className="px-4 py-2.5 font-medium text-text-primary">{row.visit_category || '-'}</td>
-                    <td className="px-4 py-2.5 font-medium text-text-primary">{row.follow_up_remark || '-'}</td>
-                    <td className="px-4 py-2.5 text-text-secondary">{row.switching_reason || '-'}</td>
-                    <td className="px-4 py-2.5 font-semibold text-danger">{row.switching_to || '-'}</td>
+                    <td className="px-4 py-2.5 font-medium text-text-primary">{row.visit_category ?? ''}</td>
+                    <td className="px-4 py-2.5 font-medium text-text-primary">{row.follow_up_remark ?? ''}</td>
+                    <td className="px-4 py-2.5 text-text-secondary">{row.switching_reason ?? ''}</td>
+                    <td className="px-4 py-2.5 font-semibold text-danger">{row.switching_to ?? ''}</td>
                     <td className="px-4 py-2.5">
                       <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-success">
                         {row.visit_status}

@@ -12,6 +12,13 @@ from apps.visits.models import VisitLog, VisitStatus, FOLLOW_UP_REMARKS, SWITCHI
 from apps.followups.models import FollowUp, FollowUpStatus
 from apps.accounts.models import User, RoleChoices
 
+
+def normalize_export_value(value):
+    if value is None:
+        return ''
+    return value
+
+
 def get_supervisor_dashboard_stats(user):
     today = timezone.localdate()
 
@@ -215,7 +222,8 @@ def create_excel_report(sheet_title: str, headers: list, rows_data: list) -> io.
 
     for row_idx, row in enumerate(rows_data, 2):
         for col_idx, val in enumerate(row, 1):
-            cell = ws.cell(row=row_idx, column=col_idx, value=val)
+            normalized_value = normalize_export_value(val)
+            cell = ws.cell(row=row_idx, column=col_idx, value=normalized_value)
             cell.border = thin_border
             # Treat customer ID or phone number as string
             if col_idx in [1, 3]:

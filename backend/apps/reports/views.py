@@ -14,7 +14,8 @@ from apps.accounts.models import User, RoleChoices
 from .services import (
     get_supervisor_dashboard_stats,
     get_agent_dashboard_stats,
-    create_excel_report
+    create_excel_report,
+    normalize_export_value,
 )
 from apps.audit.models import AuditLog, AuditAction
 
@@ -248,18 +249,18 @@ class ExportReportView(views.APIView):
                 qs = qs.filter(assigned_agent_id=agent_id)
             for a in qs:
                 rows.append([
-                    a.customer.customer_id,
-                    a.customer.customer_name,
-                    a.customer.phone_number,
-                    a.customer.churn_days,
-                    a.customer.package,
-                    a.customer.pod_station,
-                    a.customer.pod,
-                    a.customer.get_record_source_display(),
-                    a.assigned_agent.full_name or a.assigned_agent.username,
-                    a.assigned_by.full_name if a.assigned_by else '',
-                    a.assigned_at.strftime('%Y-%m-%d %H:%M'),
-                    a.status
+                    normalize_export_value(a.customer.customer_id),
+                    normalize_export_value(a.customer.customer_name),
+                    normalize_export_value(a.customer.phone_number),
+                    normalize_export_value(a.customer.churn_days),
+                    normalize_export_value(a.customer.package),
+                    normalize_export_value(a.customer.pod_station),
+                    normalize_export_value(a.customer.pod),
+                    normalize_export_value(a.customer.get_record_source_display()),
+                    normalize_export_value(a.assigned_agent.full_name or a.assigned_agent.username),
+                    normalize_export_value(a.assigned_by.full_name if a.assigned_by else ''),
+                    normalize_export_value(a.assigned_at.strftime('%Y-%m-%d %H:%M') if a.assigned_at else ''),
+                    normalize_export_value(a.status)
                 ])
 
         elif report_type == 'visits':
@@ -295,21 +296,21 @@ class ExportReportView(views.APIView):
 
             for v in qs:
                 rows.append([
-                    v.customer.customer_id,
-                    v.customer.customer_name,
-                    v.customer.pod_station,
-                    v.customer.pod,
-                    v.agent.full_name or v.agent.username,
-                    v.completed_at.strftime('%Y-%m-%d %H:%M') if v.completed_at else '',
-                    v.visit_category,
-                    v.follow_up_remark,
-                    v.switching_reason,
-                    v.switching_to,
-                    v.get_visit_status_display(),
-                    v.notes,
-                    str(v.gps_latitude) if v.gps_latitude else '',
-                    str(v.gps_longitude) if v.gps_longitude else '',
-                    v.customer.get_record_source_display()
+                    normalize_export_value(v.customer.customer_id),
+                    normalize_export_value(v.customer.customer_name),
+                    normalize_export_value(v.customer.pod_station),
+                    normalize_export_value(v.customer.pod),
+                    normalize_export_value(v.agent.full_name or v.agent.username),
+                    normalize_export_value(v.completed_at.strftime('%Y-%m-%d %H:%M') if v.completed_at else ''),
+                    normalize_export_value(v.visit_category),
+                    normalize_export_value(v.follow_up_remark),
+                    normalize_export_value(v.switching_reason),
+                    normalize_export_value(v.switching_to),
+                    normalize_export_value(v.get_visit_status_display()),
+                    normalize_export_value(v.notes),
+                    normalize_export_value(str(v.gps_latitude) if v.gps_latitude is not None else ''),
+                    normalize_export_value(str(v.gps_longitude) if v.gps_longitude is not None else ''),
+                    normalize_export_value(v.customer.get_record_source_display())
                 ])
 
         elif report_type == 'agents':
@@ -332,17 +333,17 @@ class ExportReportView(views.APIView):
                 gps_visits = VisitLog.objects.filter(agent=agent, gps_latitude__isnull=False).count()
                 agent_added = Customer.objects.filter(created_by=agent, record_source='AGENT_MANUAL').count()
                 rows.append([
-                    agent.full_name or agent.username,
-                    agent.username,
-                    agent.phone_number,
-                    assigned_count,
-                    unique_visited,
-                    total_visits,
-                    max(0, assigned_count - unique_visited),
-                    completed_fu,
-                    overdue_fu,
-                    gps_visits,
-                    agent_added
+                    normalize_export_value(agent.full_name or agent.username),
+                    normalize_export_value(agent.username),
+                    normalize_export_value(agent.phone_number),
+                    normalize_export_value(assigned_count),
+                    normalize_export_value(unique_visited),
+                    normalize_export_value(total_visits),
+                    normalize_export_value(max(0, assigned_count - unique_visited)),
+                    normalize_export_value(completed_fu),
+                    normalize_export_value(overdue_fu),
+                    normalize_export_value(gps_visits),
+                    normalize_export_value(agent_added)
                 ])
 
         # Audit the export action
