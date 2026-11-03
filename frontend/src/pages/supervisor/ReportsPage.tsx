@@ -256,13 +256,16 @@ export const ReportsPage: React.FC = () => {
                 <tr>
                   <th className="px-4 py-3">Customer ID</th>
                   <th className="px-4 py-3">Customer Name</th>
+                  <th className="px-4 py-3">Contact</th>
+                  <th className="px-4 py-3">Package</th>
+                  <th className="px-4 py-3">Churn Days</th>
                   <th className="px-4 py-3">Pod Station</th>
                   <th className="px-4 py-3">Pod Name</th>
+                  <th className="px-4 py-3">Feedback</th>
                   <th className="px-4 py-3">Agent</th>
                   <th className="px-4 py-3">Visit Date</th>
                   <th className="px-4 py-3">Category</th>
-                  <th className="px-4 py-3">Remarks</th>
-                  <th className="px-4 py-3">Remarks 1</th>
+                  <th className="px-4 py-3">Remark</th>
                   <th className="px-4 py-3">ISP</th>
                   <th className="px-4 py-3">Status</th>
                   <th className="px-4 py-3">GPS Location</th>
@@ -273,12 +276,15 @@ export const ReportsPage: React.FC = () => {
                   <tr key={idx} className="hover:bg-brand-red-light/20">
                     <td className="px-4 py-2.5 font-bold font-mono text-brand-red-dark">{row.customer_id}</td>
                     <td className="px-4 py-2.5 font-medium text-text-primary">{row.customer_name}</td>
+                    <td className="px-4 py-2.5 font-mono text-text-primary">{row.phone_number ?? ''}</td>
+                    <td className="px-4 py-2.5 font-medium text-text-primary">{row.package ?? ''}</td>
+                    <td className="px-4 py-2.5 text-right font-bold text-text-primary">{row.churn_days ?? ''}</td>
                     <td className="px-4 py-2.5 font-medium text-text-primary">{row.pod_station ?? ''}</td>
                     <td className="px-4 py-2.5 font-medium text-text-primary">{row.pod ?? ''}</td>
+                    <td className="px-4 py-2.5 font-medium text-text-primary">{row.follow_up_remark ?? ''}</td>
                     <td className="px-4 py-2.5 font-semibold">{row.agent_name}</td>
                     <td className="px-4 py-2.5 text-text-secondary">{row.completed_at}</td>
                     <td className="px-4 py-2.5 font-medium text-text-primary">{row.visit_category ?? ''}</td>
-                    <td className="px-4 py-2.5 font-medium text-text-primary">{row.follow_up_remark ?? ''}</td>
                     <td className="px-4 py-2.5 text-text-secondary">{row.switching_reason ?? ''}</td>
                     <td className="px-4 py-2.5 font-semibold text-danger">{row.switching_to ?? ''}</td>
                     <td className="px-4 py-2.5">
