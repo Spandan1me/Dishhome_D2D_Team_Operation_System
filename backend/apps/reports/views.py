@@ -269,7 +269,7 @@ class ExportReportView(views.APIView):
                 'Customer Name', 'Contact', 'Package', 'Churn Days', 'Pod Station', 'Pod Name',
                 'Agent Name', 'Visit Date', 'Category', 'Remarks', 'Remarks 1', 'ISP',
                 'Visit Status', 'Feedback', 'Notes', 'GPS latitude', 'GPS longitude',
-                'Record Source'
+                'GPS accuracy', 'Record Source'
             ]
             qs = VisitLog.objects.select_related('customer', 'agent').all()
             if not request.user.is_admin_user:
@@ -313,6 +313,7 @@ class ExportReportView(views.APIView):
                     normalize_export_value(v.notes),
                     normalize_export_value(str(v.gps_latitude) if v.gps_latitude is not None else ''),
                     normalize_export_value(str(v.gps_longitude) if v.gps_longitude is not None else ''),
+                    normalize_export_value(v.gps_accuracy),
                     normalize_export_value(v.customer.get_record_source_display())
                 ])
 
