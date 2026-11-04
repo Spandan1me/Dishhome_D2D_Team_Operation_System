@@ -30,6 +30,7 @@ export const VisitFormPage: React.FC = () => {
   // Form State
   const [visitStatus, setVisitStatus] = useState('COMPLETED');
   const [visitCategory, setVisitCategory] = useState('');
+  const [collectionType, setCollectionType] = useState('');
   const [remark, setRemark] = useState('');
   const [switchingReason, setSwitchingReason] = useState('');
   const [switchingTo, setSwitchingTo] = useState('');
@@ -426,6 +427,10 @@ export const VisitFormPage: React.FC = () => {
       setError('Please select a visit category.');
       return;
     }
+    if (isRouterCollection && !collectionType) {
+      setError('Please select a collection type.');
+      return;
+    }
     if (!remark) {
       setError('Please select a remark.');
       return;
@@ -458,6 +463,7 @@ export const VisitFormPage: React.FC = () => {
       const payload: Record<string, string | number | null> = {
         customer_id: customer.id,
         visit_category: visitCategory,
+        collection_type: collectionType,
         visit_status: visitStatus,
         follow_up_remark: remark,
         switching_reason: switchingReason,
@@ -624,6 +630,7 @@ export const VisitFormPage: React.FC = () => {
               value={visitCategory}
               onChange={(e) => {
                 setVisitCategory(e.target.value);
+                setCollectionType('');
                 setRemark('');
                 setSwitchingReason('');
                 setSwitchingTo('');
@@ -639,6 +646,27 @@ export const VisitFormPage: React.FC = () => {
               ))}
             </select>
           </div>
+
+          {isRouterCollection && (
+            <div className="p-4 bg-amber-50/60 border border-amber-200 rounded-xl space-y-2 animate-fadeIn">
+              <label className="block text-xs font-bold text-warning uppercase">
+                Collection Type *
+              </label>
+              <select
+                value={collectionType}
+                onChange={(e) => setCollectionType(e.target.value)}
+                className="w-full px-4 py-3 bg-white border border-border rounded-lg text-sm font-medium text-text-primary focus:outline-none focus:border-brand-red"
+                required
+              >
+                <option value="">-- Select Collection Type --</option>
+                {(choices.collection_types || []).map((item: any, idx: number) => (
+                  <option key={idx} value={item.value}>
+                    {item.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           {visitCategory && (
             <div>
