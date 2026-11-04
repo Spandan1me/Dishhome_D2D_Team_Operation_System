@@ -118,17 +118,18 @@ class VisitFindingsReportView(views.APIView):
                 'agent_name': v.agent.full_name or v.agent.username,
                 'visit_status': v.get_visit_status_display(),
                 'visit_category': v.visit_category,
-                'follow_up_remark': v.follow_up_remark,
-                'switching_reason': v.switching_reason,
-                'switching_to': v.switching_to,
-                'notes': v.notes,
-                'gps_latitude': str(v.gps_latitude) if v.gps_latitude else '',
-                'gps_longitude': str(v.gps_longitude) if v.gps_longitude else '',
-                'gps_accuracy': v.gps_accuracy,
-                'completed_at': v.completed_at.strftime('%Y-%m-%d %H:%M') if v.completed_at else '',
-                'record_source': v.customer.get_record_source_display()
-            }
-            for v in visits[:500]
+            'collection_type': v.collection_type,
+            'follow_up_remark': v.follow_up_remark,
+            'switching_reason': v.switching_reason,
+            'switching_to': v.switching_to,
+            'notes': v.notes,
+            'gps_latitude': str(v.gps_latitude) if v.gps_latitude else '',
+            'gps_longitude': str(v.gps_longitude) if v.gps_longitude else '',
+            'gps_accuracy': v.gps_accuracy,
+            'completed_at': v.completed_at.strftime('%Y-%m-%d %H:%M') if v.completed_at else '',
+            'record_source': v.customer.get_record_source_display()
+        }
+        for v in visits[:500]
         ]
         return Response(data)
 
@@ -267,7 +268,7 @@ class ExportReportView(views.APIView):
             filename_prefix = "Visit_Findings"
             headers = [
                 'Customer Name', 'Contact', 'Package', 'Churn Days', 'Pod Station', 'Pod Name',
-                'Agent Name', 'Visit Date', 'Category', 'Remarks', 'Remarks 1', 'ISP',
+                'Agent Name', 'Visit Date', 'Category', 'Collection Type', 'Remarks', 'Remarks 1', 'ISP',
                 'Visit Status', 'Notes', 'GPS latitude', 'GPS longitude',
                 'GPS accuracy', 'Record Source'
             ]
@@ -284,6 +285,9 @@ class ExportReportView(views.APIView):
             remarks_1 = request.query_params.get('remarks_1') or request.query_params.get('switching_reason')
             if remarks_1:
                 qs = qs.filter(switching_reason=remarks_1)
+            collection_type = request.query_params.get('collection_type')
+            if collection_type:
+                qs = qs.filter(collection_type=collection_type)
             isp = request.query_params.get('isp') or request.query_params.get('switching_to')
             if isp:
                 qs = qs.filter(switching_to=isp)
@@ -305,6 +309,7 @@ class ExportReportView(views.APIView):
                     normalize_export_value(v.agent.full_name or v.agent.username),
                     normalize_export_value(v.completed_at.strftime('%Y-%m-%d %H:%M') if v.completed_at else ''),
                     normalize_export_value(v.visit_category),
+                    normalize_export_value(v.collection_type),
                     normalize_export_value(v.follow_up_remark),
                     normalize_export_value(v.switching_reason),
                     normalize_export_value(v.switching_to),

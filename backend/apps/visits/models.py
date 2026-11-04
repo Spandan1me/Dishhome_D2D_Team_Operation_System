@@ -114,6 +114,8 @@ FOLLOW_UP_REMARKS = [
     for remark in category['remarks']
 ]
 
+ROUTER_COLLECTION_TYPES = ['Lead', 'Lost', 'Returned']
+
 ROUTER_COLLECTION_REMARKS_1 = [
     "Switched to other ISP",
     "Still not switched to other ISP",
@@ -165,6 +167,7 @@ class VisitLog(models.Model):
         db_index=True
     )
     visit_category = models.CharField(max_length=80, blank=True, default='', db_index=True)
+    collection_type = models.CharField(max_length=30, blank=True, default='', db_index=True)
     follow_up_remark = models.CharField(max_length=100, db_index=True)
     switching_reason = models.CharField(max_length=100, blank=True)
     switching_to = models.CharField(max_length=50, blank=True)

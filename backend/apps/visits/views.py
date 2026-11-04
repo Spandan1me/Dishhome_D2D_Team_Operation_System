@@ -55,6 +55,10 @@ class VisitChoicesView(views.APIView):
             'isps': ROUTER_COLLECTION_ISPS,
             'switching_reasons': SWITCHING_REASONS,
             'switching_to_isps': SWITCHING_TO_ISPS,
+            'collection_types': [
+                {'value': value, 'label': value}
+                for value in ['Lead', 'Lost', 'Returned']
+            ],
             'visit_statuses': [
                 {'value': c[0], 'label': c[1]} for c in VisitStatus.choices
             ]
@@ -96,6 +100,10 @@ class VisitListCreateView(views.APIView):
         remarks_1 = request.query_params.get('remarks_1') or request.query_params.get('switching_reason')
         if remarks_1:
             qs = qs.filter(switching_reason=remarks_1)
+
+        collection_type = request.query_params.get('collection_type')
+        if collection_type:
+            qs = qs.filter(collection_type=collection_type)
 
         isp = request.query_params.get('isp') or request.query_params.get('switching_to')
         if isp:
@@ -174,6 +182,7 @@ class VisitListCreateView(views.APIView):
                 agent=request.user,
                 visit_status=serializer.validated_data.get('visit_status', VisitStatus.COMPLETED),
                 visit_category=serializer.validated_data.get('visit_category', ''),
+                collection_type=serializer.validated_data.get('collection_type', ''),
                 follow_up_remark=serializer.validated_data['follow_up_remark'],
                 switching_reason=serializer.validated_data.get('switching_reason', ''),
                 switching_to=serializer.validated_data.get('switching_to', ''),

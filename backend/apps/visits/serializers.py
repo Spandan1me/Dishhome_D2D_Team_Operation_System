@@ -9,6 +9,7 @@ from .models import (
     ROUTER_COLLECTION_ISPS,
     ROUTER_COLLECTION_SWITCHED_ISPS,
     ROUTER_COLLECTION_NOT_SWITCHED_ISPS,
+    ROUTER_COLLECTION_TYPES,
     SWITCHING_REASONS,
     SWITCHING_TO_ISPS
 )
@@ -30,7 +31,7 @@ class VisitLogSerializer(serializers.ModelSerializer):
             'id', 'customer', 'customer_code', 'customer_name',
             'phone_number', 'churn_days', 'package', 'agent',
             'agent_name', 'agent_username', 'visit_status',
-            'visit_category', 'follow_up_remark', 'switching_reason', 'switching_to',
+            'visit_category', 'collection_type', 'follow_up_remark', 'switching_reason', 'switching_to',
             'notes', 'gps_latitude', 'gps_longitude', 'gps_accuracy',
             'gps_captured_at', 'completed_at', 'created_at',
             'has_photo', 'has_video'
@@ -45,6 +46,7 @@ class VisitLogSerializer(serializers.ModelSerializer):
 class RecordVisitSerializer(serializers.Serializer):
     customer_id = serializers.CharField(required=True)
     visit_category = serializers.CharField(required=False, allow_blank=True)
+    collection_type = serializers.CharField(required=False, allow_blank=True)
     visit_status = serializers.ChoiceField(choices=VisitStatus.choices, default=VisitStatus.COMPLETED)
     follow_up_remark = serializers.CharField(required=True)
     switching_reason = serializers.CharField(required=False, allow_blank=True)
@@ -136,6 +138,17 @@ class RecordVisitSerializer(serializers.Serializer):
         attrs['visit_category'] = matched_config['category']
 
         if attrs['visit_category'] == 'Router Collection':
+            raw_collection_type = (attrs.get('collection_type') or '').strip()
+            if not raw_collection_type:
+                raise serializers.ValidationError({
+                    'collection_type': 'Please select a router collection type.'
+                })
+            if raw_collection_type not in ROUTER_COLLECTION_TYPES:
+                raise serializers.ValidationError({
+                    'collection_type': f"Invalid router collection type '{raw_collection_type}'."
+                })
+            attrs['collection_type'] = raw_collection_type
+
             raw_reason = (attrs.get('switching_reason') or '').strip()
             if not raw_reason:
                 raise serializers.ValidationError({
@@ -163,6 +176,7 @@ class RecordVisitSerializer(serializers.Serializer):
                 })
             attrs['switching_to'] = switching_to
         else:
+            attrs['collection_type'] = (attrs.get('collection_type') or '').strip()
             attrs['switching_reason'] = (attrs.get('switching_reason') or '').strip()
             attrs['switching_to'] = (attrs.get('switching_to') or '').strip()
 
