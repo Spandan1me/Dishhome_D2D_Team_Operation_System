@@ -268,7 +268,7 @@ class ExportReportView(views.APIView):
             headers = [
                 'Customer Name', 'Contact', 'Package', 'Churn Days', 'Pod Station', 'Pod Name',
                 'Agent Name', 'Visit Date', 'Category', 'Remarks', 'Remarks 1', 'ISP',
-                'Visit Status', 'Feedback', 'Notes', 'GPS latitude', 'GPS longitude',
+                'Visit Status', 'Notes', 'GPS latitude', 'GPS longitude',
                 'GPS accuracy', 'Record Source'
             ]
             qs = VisitLog.objects.select_related('customer', 'agent').all()
@@ -309,7 +309,6 @@ class ExportReportView(views.APIView):
                     normalize_export_value(v.switching_reason),
                     normalize_export_value(v.switching_to),
                     normalize_export_value(v.get_visit_status_display()),
-                    normalize_export_value(v.notes),
                     normalize_export_value(v.notes),
                     normalize_export_value(str(v.gps_latitude) if v.gps_latitude is not None else ''),
                     normalize_export_value(str(v.gps_longitude) if v.gps_longitude is not None else ''),
