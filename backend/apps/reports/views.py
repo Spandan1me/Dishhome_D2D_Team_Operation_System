@@ -346,6 +346,27 @@ class ExportReportView(views.APIView):
                     normalize_export_value(agent_added)
                 ])
 
+        elif report_type == 'churn':
+            filename_prefix = "Customer_Churn_Report"
+            headers = [
+                'Customer ID', 'Customer Name', 'Phone Number',
+                'Churn Days', 'Package', 'Pod Station', 'Pod Name', 'Record Source'
+            ]
+            qs = Customer.objects.all().order_by('-churn_days', 'customer_id')
+            if not request.user.is_admin_user:
+                qs = qs.filter(assignments__assigned_agent__in=request.user.supervised_agents.all()).distinct()
+            for customer in qs:
+                rows.append([
+                    normalize_export_value(customer.customer_id),
+                    normalize_export_value(customer.customer_name),
+                    normalize_export_value(customer.phone_number),
+                    normalize_export_value(customer.churn_days),
+                    normalize_export_value(customer.package),
+                    normalize_export_value(customer.pod_station),
+                    normalize_export_value(customer.pod),
+                    normalize_export_value(customer.get_record_source_display())
+                ])
+
         # Audit the export action
         AuditLog.objects.create(
             user=request.user,

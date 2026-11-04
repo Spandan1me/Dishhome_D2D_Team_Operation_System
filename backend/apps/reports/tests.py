@@ -38,6 +38,16 @@ class ReportExportTests(APITestCase):
         self.assertEqual(response['Content-Type'], 'text/csv')
         self.assertIn(b'Customer ID,Customer Name', response.content)
 
+    def test_churn_csv_export_includes_contact_package_and_churn_days(self):
+        response = self.client.get(
+            self.export_url,
+            {'report_type': 'churn', 'file_format': 'csv'},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'text/csv')
+        self.assertIn(b'Customer ID,Customer Name,Phone Number,Churn Days,Package', response.content)
+
     def test_export_rejects_unsupported_file_format(self):
         response = self.client.get(
             self.export_url,
