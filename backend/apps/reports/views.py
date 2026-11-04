@@ -266,9 +266,9 @@ class ExportReportView(views.APIView):
         elif report_type == 'visits':
             filename_prefix = "Visit_Findings"
             headers = [
-                'Customer ID', 'Customer Name', 'Pod Station', 'Pod Name', 'Agent Name',
-                'Visit Date', 'Category', 'Remarks', 'Remarks 1', 'ISP',
-                'Visit Status', 'Notes', 'GPS Latitude', 'GPS Longitude',
+                'Customer Name', 'Contact', 'Package', 'Churn Days', 'Pod Station', 'Pod Name',
+                'Agent Name', 'Visit Date', 'Category', 'Remarks', 'Remarks 1', 'ISP',
+                'Visit Status', 'Feedback', 'Notes', 'GPS latitude', 'GPS longitude',
                 'Record Source'
             ]
             qs = VisitLog.objects.select_related('customer', 'agent').all()
@@ -296,8 +296,10 @@ class ExportReportView(views.APIView):
 
             for v in qs:
                 rows.append([
-                    normalize_export_value(v.customer.customer_id),
                     normalize_export_value(v.customer.customer_name),
+                    normalize_export_value(v.customer.phone_number),
+                    normalize_export_value(v.customer.package),
+                    normalize_export_value(v.customer.churn_days),
                     normalize_export_value(v.customer.pod_station),
                     normalize_export_value(v.customer.pod),
                     normalize_export_value(v.agent.full_name or v.agent.username),
@@ -307,6 +309,7 @@ class ExportReportView(views.APIView):
                     normalize_export_value(v.switching_reason),
                     normalize_export_value(v.switching_to),
                     normalize_export_value(v.get_visit_status_display()),
+                    normalize_export_value(v.notes),
                     normalize_export_value(v.notes),
                     normalize_export_value(str(v.gps_latitude) if v.gps_latitude is not None else ''),
                     normalize_export_value(str(v.gps_longitude) if v.gps_longitude is not None else ''),

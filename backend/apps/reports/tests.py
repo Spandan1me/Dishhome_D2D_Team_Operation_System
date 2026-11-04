@@ -36,7 +36,7 @@ class ReportExportTests(APITestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'text/csv')
-        self.assertIn(b'Customer ID,Customer Name', response.content)
+        self.assertIn(b'Customer Name,Contact,Package,Churn Days', response.content)
 
     def test_churn_csv_export_includes_contact_package_and_churn_days(self):
         response = self.client.get(
