@@ -244,7 +244,7 @@ class ExportReportView(views.APIView):
             ]
             qs = CustomerAssignment.objects.select_related('customer', 'assigned_agent', 'assigned_by').all()
             if not request.user.is_admin_user:
-                qs = qs.filter(assigned_agent__in=request.user.supervised_agents.all())
+                qs = qs.filter(assigned_agent__role=RoleChoices.AGENT)
             agent_id = request.query_params.get('agent')
             if agent_id:
                 qs = qs.filter(assigned_agent_id=agent_id)
@@ -274,7 +274,7 @@ class ExportReportView(views.APIView):
             ]
             qs = VisitLog.objects.select_related('customer', 'agent').all()
             if not request.user.is_admin_user:
-                qs = qs.filter(agent__in=request.user.supervised_agents.all())
+                qs = qs.filter(agent__role=RoleChoices.AGENT)
 
             category = request.query_params.get('category')
             if category:
@@ -363,7 +363,7 @@ class ExportReportView(views.APIView):
             ]
             qs = Customer.objects.all().order_by('-churn_days', 'customer_id')
             if not request.user.is_admin_user:
-                qs = qs.filter(assignments__assigned_agent__in=request.user.supervised_agents.all()).distinct()
+                qs = qs.filter(assignments__assigned_agent__role=RoleChoices.AGENT).distinct()
             for customer in qs:
                 rows.append([
                     normalize_export_value(customer.customer_id),
