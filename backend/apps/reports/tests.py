@@ -91,6 +91,14 @@ class ReportExportTests(APITestCase):
         self.assertIn(b'DH-EXPORT-001', response.content)
         self.assertIn(b'Export Customer', response.content)
 
+    def test_churn_report_includes_visit_summary_and_isp_reason_matrix(self):
+        response = self.client.get(reverse('report_churn'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('visit_summary', response.data)
+        self.assertIn('other_isp_switch_reason', response.data)
+        self.assertIn('Total', [item['category'] for item in response.data['visit_summary']])
+
     def test_export_rejects_unsupported_file_format(self):
         response = self.client.get(
             self.export_url,

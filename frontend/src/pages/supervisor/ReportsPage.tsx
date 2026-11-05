@@ -207,6 +207,62 @@ export const ReportsPage: React.FC = () => {
                 </div>
               </div>
             </div>
+
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mt-6">
+              <div>
+                <h4 className="font-bold text-text-secondary uppercase mb-2">Visit Summary</h4>
+                <div className="border border-border rounded-lg overflow-hidden">
+                  <table className="w-full text-left text-[11px]">
+                    <thead className="bg-gray-100 uppercase text-[10px] text-text-secondary">
+                      <tr>
+                        <th className="p-2.5">Category</th>
+                        <th className="p-2.5 text-right">Total</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border">
+                      {churnStats.visit_summary?.map((item: any, i: number) => (
+                        <tr key={i} className="hover:bg-gray-50">
+                          <td className="p-2.5 font-medium">{item.category}</td>
+                          <td className="p-2.5 text-right font-bold text-brand-red">{item.total}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <div>
+                <h4 className="font-bold text-text-secondary uppercase mb-2">Other ISP Switch Reason</h4>
+                <div className="border border-border rounded-lg overflow-hidden overflow-x-auto">
+                  <table className="w-full text-left text-[11px] min-w-[800px]">
+                    <thead className="bg-gray-100 uppercase text-[10px] text-text-secondary">
+                      <tr>
+                        <th className="p-2.5 sticky left-0 bg-gray-100 z-10">Other ISP</th>
+                        {churnStats.other_isp_switch_reason?.columns?.map((column: string, i: number) => (
+                          <th key={i} className="p-2.5 text-center whitespace-normal max-w-[120px]">{column}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border">
+                      {churnStats.other_isp_switch_reason?.rows?.map((row: any, rowIndex: number) => (
+                        <tr key={rowIndex} className="hover:bg-gray-50 align-top">
+                          <td className="p-2.5 sticky left-0 bg-white font-medium">{row.isp}</td>
+                          {row.values.map((value: number, colIndex: number) => (
+                            <td key={colIndex} className="p-2.5 text-center font-medium">{value}</td>
+                          ))}
+                        </tr>
+                      ))}
+                      <tr className="bg-gray-50 font-bold">
+                        <td className="p-2.5 sticky left-0 bg-gray-50">Total</td>
+                        {churnStats.other_isp_switch_reason?.total?.values?.map((value: number, idx: number) => (
+                          <td key={idx} className="p-2.5 text-center">{value}</td>
+                        ))}
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
           </div>
         ) : reportData.length === 0 ? (
           <div className="p-12 text-center text-xs text-text-secondary">No records found for this report.</div>

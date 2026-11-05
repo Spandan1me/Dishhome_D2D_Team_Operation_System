@@ -8,7 +8,13 @@ from django.db.models import Count, Q
 from apps.accounts.permissions import IsSupervisorOrAdmin
 from apps.customers.models import Customer
 from apps.allocations.models import CustomerAssignment
-from apps.visits.models import VisitLog, FOLLOW_UP_REMARKS, SWITCHING_REASONS, SWITCHING_TO_ISPS
+from apps.visits.models import (
+    VisitLog,
+    FOLLOW_UP_REMARKS,
+    SWITCHING_REASONS,
+    SWITCHING_TO_ISPS,
+    VISIT_REMARKS_STRUCTURE,
+)
 from apps.followups.models import FollowUp, FollowUpStatus
 from apps.accounts.models import User, RoleChoices
 from .services import (
@@ -18,6 +24,83 @@ from .services import (
     normalize_export_value,
 )
 from apps.audit.models import AuditLog, AuditAction
+
+OTHER_ISP_SWITCH_REASON_COLUMNS = [
+    'Busy / Not Available',
+    "Competitor's Better Offer",
+    'Customer wants additional offer',
+    'Due to bad service',
+    'Higher Price vs. Competitors',
+    'Highly dissatisfied after price increment',
+    'Multiple Connection of DishHome Internet',
+    'Network unavailable / e-relocation cancelled',
+    'Poor Customer Support / Service Response',
+    'Out of valley / abroad',
+]
+
+OTHER_ISP_SWITCH_ROWS = [
+    'WorldLink',
+    'CG Net',
+    'NT Fiber',
+    'Lead',
+    'Not specified (another ISP)',
+    'Classic Tech',
+    'Not in use',
+    'Vianet',
+    'Subisu',
+]
+
+VISIT_SUMMARY_CATEGORIES = [
+    'Interested — Will recharge soon',
+    'Call not received/Not Connected',
+    'Router Collection',
+    'Interested — Callback required',
+    'Waiting for festival offer',
+    'Financial issue',
+    'Ready To Recharge',
+]
+
+
+def normalize_other_isp_name(value):
+    if value is None:
+        return ''
+    normalized = str(value).strip()
+    aliases = {
+        'worldlink': 'WorldLink',
+        'cg net': 'CG Net',
+        'nt fiber': 'NT Fiber',
+        'not specified (another isp)': 'Not specified (another ISP)',
+        'classic tech': 'Classic Tech',
+        'classictech': 'Classic Tech',
+        'not in use': 'Not in use',
+        'vianet': 'Vianet',
+        'subisu': 'Subisu',
+        'lead': 'Lead',
+    }
+    return aliases.get(normalized.lower(), normalized)
+
+
+def normalize_summary_reason_name(value):
+    if value is None:
+        return ''
+    normalized = str(value).strip()
+    aliases = {
+        'busy/ not available': 'Busy / Not Available',
+        'busy / not available': 'Busy / Not Available',
+        "competitor's better offer": "Competitor's Better Offer",
+        'customer wants additional offer': 'Customer wants additional offer',
+        'due to bad service': 'Due to bad service',
+        'higher price vs. competitors': 'Higher Price vs. Competitors',
+        'higher price vs competitors': 'Higher Price vs. Competitors',
+        'highly dissatisfied after price increment': 'Highly dissatisfied after price increment',
+        'multiple connection of dishhome internet': 'Multiple Connection of DishHome Internet',
+        'network unavailable/relocation cancelled': 'Network unavailable / e-relocation cancelled',
+        'network unavailable / e-relocation cancelled': 'Network unavailable / e-relocation cancelled',
+        'poor customer support / service response': 'Poor Customer Support / Service Response',
+        'out of valley / abroad': 'Out of valley / abroad',
+    }
+    return aliases.get(normalized.lower(), normalized)
+
 
 class DashboardStatsView(views.APIView):
     permission_classes = [IsAuthenticated]
@@ -192,6 +275,50 @@ class ChurnAnalysisReportView(views.APIView):
             .order_by('-count')
         )
 
+        visit_summary_counts = {
+            category: 0 for category in VISIT_SUMMARY_CATEGORIES
+        }
+        for item in VisitLog.objects.values('visit_category').annotate(count=Count('id')):
+            category = item.get('visit_category', '')
+            if category in visit_summary_counts:
+                visit_summary_counts[category] = item['count']
+
+        visit_summary = [
+            {'category': category, 'total': visit_summary_counts.get(category, 0)}
+            for category in VISIT_SUMMARY_CATEGORIES
+        ]
+        total_visit_summary = sum(item['total'] for item in visit_summary)
+        visit_summary.append({'category': 'Total', 'total': total_visit_summary})
+
+        other_isp_rows = []
+        other_isp_totals = [0 for _ in OTHER_ISP_SWITCH_REASON_COLUMNS]
+        reason_matrix = {
+            isp: {column: 0 for column in OTHER_ISP_SWITCH_REASON_COLUMNS}
+            for isp in OTHER_ISP_SWITCH_ROWS
+        }
+
+        for visit in VisitLog.objects.exclude(switching_to='').exclude(follow_up_remark=''):
+            normalized_isp = normalize_other_isp_name(visit.switching_to)
+            if normalized_isp not in reason_matrix:
+                continue
+            normalized_reason = normalize_summary_reason_name(visit.follow_up_remark)
+            if normalized_reason not in OTHER_ISP_SWITCH_REASON_COLUMNS:
+                continue
+            reason_matrix[normalized_isp][normalized_reason] += 1
+
+        for isp in OTHER_ISP_SWITCH_ROWS:
+            values = [reason_matrix[isp][column] for column in OTHER_ISP_SWITCH_REASON_COLUMNS]
+            row_total = sum(values)
+            for idx, value in enumerate(values):
+                other_isp_totals[idx] += value
+            other_isp_rows.append({'isp': isp, 'values': values, 'total': row_total})
+
+        other_isp_switch_reason = {
+            'columns': OTHER_ISP_SWITCH_REASON_COLUMNS,
+            'rows': other_isp_rows,
+            'total': {'isp': 'Total', 'values': other_isp_totals, 'total': sum(other_isp_totals)},
+        }
+
         # Churn days buckets
         churn_0_30 = Customer.objects.filter(churn_days__lte=30).count()
         churn_31_60 = Customer.objects.filter(churn_days__gt=30, churn_days__lte=60).count()
@@ -202,6 +329,8 @@ class ChurnAnalysisReportView(views.APIView):
             'remark_counts': list(remark_counts),
             'switching_reasons': list(reason_counts),
             'competitor_isps': list(isp_counts),
+            'visit_summary': visit_summary,
+            'other_isp_switch_reason': other_isp_switch_reason,
             'churn_brackets': [
                 {'bracket': '0 - 30 days', 'count': churn_0_30},
                 {'bracket': '31 - 60 days', 'count': churn_31_60},
