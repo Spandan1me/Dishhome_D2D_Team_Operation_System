@@ -1,4 +1,7 @@
+from datetime import timedelta
+
 from django.urls import reverse
+from django.utils import timezone
 from rest_framework.test import APITestCase
 
 from apps.accounts.models import RoleChoices, User
@@ -59,6 +62,56 @@ class ReportExportTests(APITestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertIn(b'Collection Type', response.content)
+
+    def test_visit_export_filters_by_date_range(self):
+        agent = User.objects.create_user(
+            username='date-filter-agent',
+            password='test-password',
+            role=RoleChoices.AGENT,
+            supervisor=self.supervisor,
+        )
+        recent_customer = Customer.objects.create(
+            customer_id='DH-DATE-RECENT',
+            customer_name='Recent Customer',
+            phone_number='9800000002',
+            churn_days=20,
+            package='50 Mbps',
+        )
+        older_customer = Customer.objects.create(
+            customer_id='DH-DATE-OLD',
+            customer_name='Older Customer',
+            phone_number='9800000003',
+            churn_days=30,
+            package='100 Mbps',
+        )
+        VisitLog.objects.create(
+            customer=recent_customer,
+            agent=agent,
+            visit_status=VisitStatus.COMPLETED,
+            follow_up_remark='Ready to recharge within 3 days',
+            completed_at=timezone.now() - timedelta(days=7),
+        )
+        VisitLog.objects.create(
+            customer=older_customer,
+            agent=agent,
+            visit_status=VisitStatus.COMPLETED,
+            follow_up_remark='Not connected',
+            completed_at=timezone.now() - timedelta(days=45),
+        )
+
+        response = self.client.get(
+            self.export_url,
+            {
+                'report_type': 'visits',
+                'file_format': 'csv',
+                'date_from': (timezone.now() - timedelta(days=30)).date().isoformat(),
+                'date_to': timezone.now().date().isoformat(),
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(b'DH-DATE-RECENT', response.content)
+        self.assertNotIn(b'DH-DATE-OLD', response.content)
 
     def test_supervisor_csv_export_includes_all_agent_visit_rows(self):
         agent = User.objects.create_user(

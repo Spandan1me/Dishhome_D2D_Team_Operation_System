@@ -129,6 +129,14 @@ class AllocationReportView(views.APIView):
         if agent_id:
             assignments = assignments.filter(assigned_agent_id=agent_id)
 
+        date_from = request.query_params.get('date_from')
+        if date_from:
+            assignments = assignments.filter(assigned_at__date__gte=date_from)
+
+        date_to = request.query_params.get('date_to')
+        if date_to:
+            assignments = assignments.filter(assigned_at__date__lte=date_to)
+
         data = [
             {
                 'customer_id': a.customer.customer_id,
@@ -221,16 +229,59 @@ class AgentPerformanceReportView(views.APIView):
 
     def get(self, request):
         agents = User.objects.filter(role=RoleChoices.AGENT, is_active=True)
+        date_from = request.query_params.get('date_from')
+        date_to = request.query_params.get('date_to')
 
         data = []
         for agent in agents:
-            assigned_count = CustomerAssignment.objects.filter(assigned_agent=agent, status='ACTIVE').count()
-            unique_visited = VisitLog.objects.filter(agent=agent, visit_status='COMPLETED').values('customer').distinct().count()
-            total_visits = VisitLog.objects.filter(agent=agent).count()
-            completed_followups = FollowUp.objects.filter(assigned_agent=agent, status=FollowUpStatus.COMPLETED).count()
-            overdue_followups = FollowUp.objects.filter(assigned_agent=agent, status=FollowUpStatus.OVERDUE).count()
-            gps_visits = VisitLog.objects.filter(agent=agent, gps_latitude__isnull=False).count()
-            agent_added = Customer.objects.filter(created_by=agent, record_source='AGENT_MANUAL').count()
+            assigned_qs = CustomerAssignment.objects.filter(assigned_agent=agent, status='ACTIVE')
+            if date_from:
+                assigned_qs = assigned_qs.filter(assigned_at__date__gte=date_from)
+            if date_to:
+                assigned_qs = assigned_qs.filter(assigned_at__date__lte=date_to)
+            assigned_count = assigned_qs.count()
+
+            visited_qs = VisitLog.objects.filter(agent=agent, visit_status='COMPLETED')
+            if date_from:
+                visited_qs = visited_qs.filter(completed_at__date__gte=date_from)
+            if date_to:
+                visited_qs = visited_qs.filter(completed_at__date__lte=date_to)
+            unique_visited = visited_qs.values('customer').distinct().count()
+
+            total_visits_qs = VisitLog.objects.filter(agent=agent)
+            if date_from:
+                total_visits_qs = total_visits_qs.filter(completed_at__date__gte=date_from)
+            if date_to:
+                total_visits_qs = total_visits_qs.filter(completed_at__date__lte=date_to)
+            total_visits = total_visits_qs.count()
+
+            completed_followups_qs = FollowUp.objects.filter(assigned_agent=agent, status=FollowUpStatus.COMPLETED)
+            if date_from:
+                completed_followups_qs = completed_followups_qs.filter(created_at__date__gte=date_from)
+            if date_to:
+                completed_followups_qs = completed_followups_qs.filter(created_at__date__lte=date_to)
+            completed_followups = completed_followups_qs.count()
+
+            overdue_followups_qs = FollowUp.objects.filter(assigned_agent=agent, status=FollowUpStatus.OVERDUE)
+            if date_from:
+                overdue_followups_qs = overdue_followups_qs.filter(created_at__date__gte=date_from)
+            if date_to:
+                overdue_followups_qs = overdue_followups_qs.filter(created_at__date__lte=date_to)
+            overdue_followups = overdue_followups_qs.count()
+
+            gps_visits_qs = VisitLog.objects.filter(agent=agent, gps_latitude__isnull=False)
+            if date_from:
+                gps_visits_qs = gps_visits_qs.filter(completed_at__date__gte=date_from)
+            if date_to:
+                gps_visits_qs = gps_visits_qs.filter(completed_at__date__lte=date_to)
+            gps_visits = gps_visits_qs.count()
+
+            agent_added_qs = Customer.objects.filter(created_by=agent, record_source='AGENT_MANUAL')
+            if date_from:
+                agent_added_qs = agent_added_qs.filter(created_at__date__gte=date_from)
+            if date_to:
+                agent_added_qs = agent_added_qs.filter(created_at__date__lte=date_to)
+            agent_added = agent_added_qs.count()
 
             data.append({
                 'agent_id': agent.id,
@@ -252,16 +303,25 @@ class ChurnAnalysisReportView(views.APIView):
     permission_classes = [IsSupervisorOrAdmin]
 
     def get(self, request):
+        date_from = request.query_params.get('date_from')
+        date_to = request.query_params.get('date_to')
+
+        visit_qs = VisitLog.objects.all()
+        if date_from:
+            visit_qs = visit_qs.filter(completed_at__date__gte=date_from)
+        if date_to:
+            visit_qs = visit_qs.filter(completed_at__date__lte=date_to)
+
         # Remark distribution
         remark_counts = (
-            VisitLog.objects.values('follow_up_remark')
+            visit_qs.values('follow_up_remark')
             .annotate(count=Count('id'))
             .order_by('-count')
         )
 
         # Switching reasons
         reason_counts = (
-            VisitLog.objects.exclude(switching_reason='')
+            visit_qs.exclude(switching_reason='')
             .values('switching_reason')
             .annotate(count=Count('id'))
             .order_by('-count')
@@ -269,7 +329,7 @@ class ChurnAnalysisReportView(views.APIView):
 
         # Competitor ISPs
         isp_counts = (
-            VisitLog.objects.exclude(switching_to='')
+            visit_qs.exclude(switching_to='')
             .values('switching_to')
             .annotate(count=Count('id'))
             .order_by('-count')
@@ -278,7 +338,7 @@ class ChurnAnalysisReportView(views.APIView):
         visit_summary_counts = {
             category: 0 for category in VISIT_SUMMARY_CATEGORIES
         }
-        for item in VisitLog.objects.values('visit_category').annotate(count=Count('id')):
+        for item in visit_qs.values('visit_category').annotate(count=Count('id')):
             category = item.get('visit_category', '')
             if category in visit_summary_counts:
                 visit_summary_counts[category] = item['count']
@@ -297,7 +357,7 @@ class ChurnAnalysisReportView(views.APIView):
             for isp in OTHER_ISP_SWITCH_ROWS
         }
 
-        for visit in VisitLog.objects.exclude(switching_to='').exclude(follow_up_remark=''):
+        for visit in visit_qs.exclude(switching_to='').exclude(follow_up_remark=''):
             normalized_isp = normalize_other_isp_name(visit.switching_to)
             if normalized_isp not in reason_matrix:
                 continue
@@ -377,6 +437,12 @@ class ExportReportView(views.APIView):
             agent_id = request.query_params.get('agent')
             if agent_id:
                 qs = qs.filter(assigned_agent_id=agent_id)
+            date_from = request.query_params.get('date_from')
+            if date_from:
+                qs = qs.filter(assigned_at__date__gte=date_from)
+            date_to = request.query_params.get('date_to')
+            if date_to:
+                qs = qs.filter(assigned_at__date__lte=date_to)
             for a in qs:
                 rows.append([
                     normalize_export_value(a.customer.customer_id),
@@ -459,17 +525,61 @@ class ExportReportView(views.APIView):
                 'Pending Customers', 'Follow-ups Completed', 'Overdue Follow-ups',
                 'GPS Captured Visits', 'Agent-Added Customers'
             ]
+            date_from = request.query_params.get('date_from')
+            date_to = request.query_params.get('date_to')
             agents = User.objects.filter(role=RoleChoices.AGENT, is_active=True)
             if not request.user.is_admin_user:
                 agents = agents.filter(supervisor=request.user)
             for agent in agents:
-                assigned_count = CustomerAssignment.objects.filter(assigned_agent=agent, status='ACTIVE').count()
-                unique_visited = VisitLog.objects.filter(agent=agent, visit_status='COMPLETED').values('customer').distinct().count()
-                total_visits = VisitLog.objects.filter(agent=agent).count()
-                completed_fu = FollowUp.objects.filter(assigned_agent=agent, status=FollowUpStatus.COMPLETED).count()
-                overdue_fu = FollowUp.objects.filter(assigned_agent=agent, status=FollowUpStatus.OVERDUE).count()
-                gps_visits = VisitLog.objects.filter(agent=agent, gps_latitude__isnull=False).count()
-                agent_added = Customer.objects.filter(created_by=agent, record_source='AGENT_MANUAL').count()
+                assigned_qs = CustomerAssignment.objects.filter(assigned_agent=agent, status='ACTIVE')
+                if date_from:
+                    assigned_qs = assigned_qs.filter(assigned_at__date__gte=date_from)
+                if date_to:
+                    assigned_qs = assigned_qs.filter(assigned_at__date__lte=date_to)
+                assigned_count = assigned_qs.count()
+
+                visited_qs = VisitLog.objects.filter(agent=agent, visit_status='COMPLETED')
+                if date_from:
+                    visited_qs = visited_qs.filter(completed_at__date__gte=date_from)
+                if date_to:
+                    visited_qs = visited_qs.filter(completed_at__date__lte=date_to)
+                unique_visited = visited_qs.values('customer').distinct().count()
+
+                total_visits_qs = VisitLog.objects.filter(agent=agent)
+                if date_from:
+                    total_visits_qs = total_visits_qs.filter(completed_at__date__gte=date_from)
+                if date_to:
+                    total_visits_qs = total_visits_qs.filter(completed_at__date__lte=date_to)
+                total_visits = total_visits_qs.count()
+
+                completed_fu_qs = FollowUp.objects.filter(assigned_agent=agent, status=FollowUpStatus.COMPLETED)
+                if date_from:
+                    completed_fu_qs = completed_fu_qs.filter(created_at__date__gte=date_from)
+                if date_to:
+                    completed_fu_qs = completed_fu_qs.filter(created_at__date__lte=date_to)
+                completed_fu = completed_fu_qs.count()
+
+                overdue_fu_qs = FollowUp.objects.filter(assigned_agent=agent, status=FollowUpStatus.OVERDUE)
+                if date_from:
+                    overdue_fu_qs = overdue_fu_qs.filter(created_at__date__gte=date_from)
+                if date_to:
+                    overdue_fu_qs = overdue_fu_qs.filter(created_at__date__lte=date_to)
+                overdue_fu = overdue_fu_qs.count()
+
+                gps_visits_qs = VisitLog.objects.filter(agent=agent, gps_latitude__isnull=False)
+                if date_from:
+                    gps_visits_qs = gps_visits_qs.filter(completed_at__date__gte=date_from)
+                if date_to:
+                    gps_visits_qs = gps_visits_qs.filter(completed_at__date__lte=date_to)
+                gps_visits = gps_visits_qs.count()
+
+                agent_added_qs = Customer.objects.filter(created_by=agent, record_source='AGENT_MANUAL')
+                if date_from:
+                    agent_added_qs = agent_added_qs.filter(created_at__date__gte=date_from)
+                if date_to:
+                    agent_added_qs = agent_added_qs.filter(created_at__date__lte=date_to)
+                agent_added = agent_added_qs.count()
+
                 rows.append([
                     normalize_export_value(agent.full_name or agent.username),
                     normalize_export_value(agent.username),
@@ -490,9 +600,18 @@ class ExportReportView(views.APIView):
                 'Customer ID', 'Customer Name', 'Phone Number',
                 'Churn Days', 'Package', 'Pod Station', 'Pod Name', 'Record Source'
             ]
+            date_from = request.query_params.get('date_from')
+            date_to = request.query_params.get('date_to')
             qs = Customer.objects.all().order_by('-churn_days', 'customer_id')
             if not request.user.is_admin_user:
                 qs = qs.filter(assignments__assigned_agent__role=RoleChoices.AGENT).distinct()
+            if date_from or date_to:
+                visit_customer_ids = VisitLog.objects.all()
+                if date_from:
+                    visit_customer_ids = visit_customer_ids.filter(completed_at__date__gte=date_from)
+                if date_to:
+                    visit_customer_ids = visit_customer_ids.filter(completed_at__date__lte=date_to)
+                qs = qs.filter(id__in=visit_customer_ids.values_list('customer_id', flat=True))
             for customer in qs:
                 rows.append([
                     normalize_export_value(customer.customer_id),

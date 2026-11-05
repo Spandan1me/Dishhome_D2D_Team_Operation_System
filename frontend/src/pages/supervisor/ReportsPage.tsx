@@ -10,8 +10,22 @@ import {
   UserCheck,
   TrendingDown,
   RefreshCw,
-  Loader2
+  Loader2,
+  CalendarRange
 } from 'lucide-react';
+
+const formatDateInput = (date: Date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+const getDaysAgo = (days: number) => {
+  const date = new Date();
+  date.setDate(date.getDate() - days);
+  return formatDateInput(date);
+};
 
 export const ReportsPage: React.FC = () => {
   const [activeReport, setActiveReport] = useState<'allocations' | 'visits' | 'agents' | 'churn'>('allocations');
@@ -19,21 +33,38 @@ export const ReportsPage: React.FC = () => {
   const [churnStats, setChurnStats] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [dateFrom, setDateFrom] = useState<string>(getDaysAgo(30));
+  const [dateTo, setDateTo] = useState<string>(formatDateInput(new Date()));
+  const [rangePreset, setRangePreset] = useState<string>('30');
+
+  useEffect(() => {
+    if (dateFrom && dateTo && dateFrom > dateTo) {
+      setDateTo(dateFrom);
+    }
+  }, [dateFrom, dateTo]);
+
+  const getReportParams = () => {
+    const params: Record<string, string> = {};
+    if (dateFrom) params.date_from = dateFrom;
+    if (dateTo) params.date_to = dateTo;
+    return params;
+  };
 
   const fetchReportData = async () => {
     try {
       setLoading(true);
+      const params = getReportParams();
       if (activeReport === 'allocations') {
-        const res = await api.get('/reports/allocations/');
+        const res = await api.get('/reports/allocations/', { params });
         setReportData(res.data);
       } else if (activeReport === 'visits') {
-        const res = await api.get('/reports/visits/');
+        const res = await api.get('/reports/visits/', { params });
         setReportData(res.data);
       } else if (activeReport === 'agents') {
-        const res = await api.get('/reports/agents/');
+        const res = await api.get('/reports/agents/', { params });
         setReportData(res.data);
       } else if (activeReport === 'churn') {
-        const res = await api.get('/reports/churn/');
+        const res = await api.get('/reports/churn/', { params });
         setChurnStats(res.data);
       }
     } catch (e) {
@@ -45,12 +76,28 @@ export const ReportsPage: React.FC = () => {
 
   useEffect(() => {
     fetchReportData();
-  }, [activeReport]);
+  }, [activeReport, dateFrom, dateTo]);
+
+  const handleDatePreset = (preset: string) => {
+    setRangePreset(preset);
+    if (!preset) return;
+    const days = Number(preset);
+    if (Number.isFinite(days)) {
+      setDateFrom(getDaysAgo(days));
+      setDateTo(formatDateInput(new Date()));
+    }
+  };
 
   const handleDownload = async (format: 'excel' | 'csv') => {
     try {
       setExporting(true);
-      const res = await api.get(`/reports/export/?report_type=${activeReport}&file_format=${format}`, {
+      const params = {
+        ...getReportParams(),
+        report_type: activeReport,
+        file_format: format,
+      };
+      const res = await api.get('/reports/export/', {
+        params,
         responseType: 'blob',
       });
       const ext = format === 'excel' ? 'xlsx' : 'csv';
@@ -79,7 +126,45 @@ export const ReportsPage: React.FC = () => {
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 md:justify-end">
+          <div className="flex items-center gap-2 rounded-lg border border-border bg-gray-50 px-2 py-1.5">
+            <CalendarRange className="w-3.5 h-3.5 text-text-secondary" />
+            <label className="text-[10px] font-semibold text-text-secondary uppercase">
+              From
+              <input
+                type="date"
+                value={dateFrom}
+                onChange={(e) => {
+                  setRangePreset('');
+                  setDateFrom(e.target.value);
+                }}
+                className="ml-1 rounded border border-border bg-white px-1.5 py-1 text-[11px] text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-red"
+              />
+            </label>
+            <label className="text-[10px] font-semibold text-text-secondary uppercase">
+              To
+              <input
+                type="date"
+                value={dateTo}
+                onChange={(e) => {
+                  setRangePreset('');
+                  setDateTo(e.target.value);
+                }}
+                className="ml-1 rounded border border-border bg-white px-1.5 py-1 text-[11px] text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-red"
+              />
+            </label>
+            <select
+              value={rangePreset}
+              onChange={(e) => handleDatePreset(e.target.value)}
+              className="rounded border border-border bg-white px-2 py-1 text-[10px] font-semibold uppercase text-text-primary focus:outline-none focus:ring-1 focus:ring-brand-red"
+            >
+              <option value="30">Last 30 days</option>
+              <option value="60">Last 60 days</option>
+              <option value="90">Last 90 days</option>
+              <option value="">Custom</option>
+            </select>
+          </div>
+
           <button
             onClick={() => handleDownload('excel')}
             disabled={exporting}
