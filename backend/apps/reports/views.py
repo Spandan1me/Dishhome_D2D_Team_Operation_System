@@ -107,11 +107,12 @@ class DashboardStatsView(views.APIView):
 
     def get(self, request):
         user = request.user
+        agent_id = request.query_params.get('agent_id')
         if user.is_agent_user:
             data = get_agent_dashboard_stats(user)
             return Response(data)
         else:
-            data = get_supervisor_dashboard_stats(user)
+            data = get_supervisor_dashboard_stats(user, agent_id=agent_id)
             return Response(data)
 
 class AllocationReportView(views.APIView):

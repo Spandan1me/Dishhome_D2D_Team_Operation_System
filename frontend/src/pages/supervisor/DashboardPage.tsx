@@ -36,13 +36,28 @@ const PALETTE = ['#E31E24', '#F9A825', '#2E7D32', '#00BCD4', '#5F6368', '#AB47BC
 export const SupervisorDashboardPage: React.FC = () => {
   const navigate = useNavigate();
   const [data, setData] = useState<any>(null);
+  const [agentOptions, setAgentOptions] = useState<any[]>([]);
+  const [selectedAgentId, setSelectedAgentId] = useState<string>('');
   const [loading, setLoading] = useState(true);
 
-  const fetchStats = async () => {
+  const fetchAgents = async () => {
+    try {
+      const res = await api.get('/reports/agents/');
+      setAgentOptions(res.data || []);
+    } catch (e) {
+      console.error('Error fetching agents list', e);
+    }
+  };
+
+  const fetchStats = async (agentId?: string) => {
     try {
       setLoading(true);
-      const res = await api.get('/reports/dashboard/');
+      const params = agentId ? { agent_id: agentId } : {};
+      const res = await api.get('/reports/dashboard/', { params });
       setData(res.data);
+      if (agentId && !agentOptions.some((agent) => String(agent.agent_id) === String(agentId))) {
+        await fetchAgents();
+      }
     } catch (e) {
       console.error('Error fetching dashboard stats', e);
     } finally {
@@ -51,8 +66,27 @@ export const SupervisorDashboardPage: React.FC = () => {
   };
 
   useEffect(() => {
+    fetchAgents();
     fetchStats();
   }, []);
+
+  const selectedAgent = agentOptions.find((agent) => String(agent.agent_id) === String(selectedAgentId));
+  const selectedSummary = selectedAgent
+    ? {
+        totalAssigned: selectedAgent.assigned_count || 0,
+        completedVisits: selectedAgent.unique_visited || 0,
+        pendingVisits: selectedAgent.pending_customers || 0,
+      }
+    : {
+        totalAssigned: data?.kpis?.total_assigned || 0,
+        completedVisits: data?.kpis?.completed_visits_count || 0,
+        pendingVisits: data?.kpis?.pending_visits_count || 0,
+      };
+
+  const handleAgentChange = (value: string) => {
+    setSelectedAgentId(value);
+    fetchStats(value || undefined);
+  };
 
   if (loading) {
     return (
@@ -68,19 +102,55 @@ export const SupervisorDashboardPage: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Header with Refresh */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-surface p-4 rounded-card-md shadow-card border border-border">
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 bg-surface p-4 rounded-card-md shadow-card border border-border">
         <div>
           <h2 className="text-lg font-bold text-text-primary">Operations Overview</h2>
           <p className="text-xs text-text-secondary">Real-time field operations, customer assignments, and visit metrics.</p>
         </div>
-        <button
-          onClick={fetchStats}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-text-secondary hover:text-brand-red-dark bg-gray-50 hover:bg-brand-red-light rounded-md border border-border transition-colors"
-        >
-          <RefreshCw className="w-3.5 h-3.5" />
-          <span>Refresh Data</span>
-        </button>
+
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 w-full lg:w-auto">
+          <div className="flex items-center gap-2 rounded-md border border-border bg-gray-50 px-2.5 py-1.5 min-w-[220px]">
+            <Users className="w-3.5 h-3.5 text-text-secondary" />
+            <select
+              value={selectedAgentId}
+              onChange={(e) => handleAgentChange(e.target.value)}
+              className="w-full bg-transparent text-xs font-medium text-text-primary focus:outline-none"
+            >
+              <option value="">All Agents</option>
+              {agentOptions.map((agent) => (
+                <option key={agent.agent_id} value={agent.agent_id}>
+                  {agent.agent_name || agent.username || `Agent ${agent.agent_id}`}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <button
+            onClick={() => fetchStats(selectedAgentId || undefined)}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-text-secondary hover:text-brand-red-dark bg-gray-50 hover:bg-brand-red-light rounded-md border border-border transition-colors"
+          >
+            <RefreshCw className="w-3.5 h-3.5" />
+            <span>Refresh Data</span>
+          </button>
+        </div>
       </div>
+
+      {selectedAgent && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="bg-surface p-4 rounded-card-md border border-border shadow-card">
+            <p className="text-[11px] font-medium text-text-secondary uppercase">Completed Visits</p>
+            <p className="mt-2 text-2xl font-bold text-success">{selectedSummary.completedVisits}</p>
+          </div>
+          <div className="bg-surface p-4 rounded-card-md border border-border shadow-card">
+            <p className="text-[11px] font-medium text-text-secondary uppercase">Pending to Visit</p>
+            <p className="mt-2 text-2xl font-bold text-warning">{selectedSummary.pendingVisits}</p>
+          </div>
+          <div className="bg-surface p-4 rounded-card-md border border-border shadow-card">
+            <p className="text-[11px] font-medium text-text-secondary uppercase">Total Assigned</p>
+            <p className="mt-2 text-2xl font-bold text-text-primary">{selectedSummary.totalAssigned}</p>
+          </div>
+        </div>
+      )}
 
       {/* KPI Cards Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">

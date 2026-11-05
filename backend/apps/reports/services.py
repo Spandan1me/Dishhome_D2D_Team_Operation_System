@@ -19,12 +19,14 @@ def normalize_export_value(value):
     return value
 
 
-def get_supervisor_dashboard_stats(user):
+def get_supervisor_dashboard_stats(user, agent_id=None):
     today = timezone.localdate()
 
     # Supervisors need shared visibility across the operation workspace, not only
     # agents under their own direct supervision.
     team_agents = User.objects.filter(role=RoleChoices.AGENT) if not user.is_admin_user else User.objects.filter(role=RoleChoices.AGENT)
+    if agent_id:
+        team_agents = team_agents.filter(id=agent_id)
 
     # Customers scope
     if user.is_admin_user or user.is_supervisor_user:
@@ -41,6 +43,11 @@ def get_supervisor_dashboard_stats(user):
         ).distinct()
         visits_qs = VisitLog.objects.filter(agent__in=team_agents)
         followups_qs = FollowUp.objects.filter(assigned_agent__in=team_agents)
+
+    if agent_id:
+        customers_qs = customers_qs.filter(assignments__assigned_agent_id=agent_id).distinct()
+        visits_qs = visits_qs.filter(agent_id=agent_id)
+        followups_qs = followups_qs.filter(assigned_agent_id=agent_id)
 
     total_customers = customers_qs.count()
     total_assigned = customers_qs.filter(assignments__status='ACTIVE').distinct().count()
