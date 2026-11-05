@@ -254,6 +254,7 @@ export const ReportsPage: React.FC = () => {
             <table className="w-full text-left text-xs">
               <thead className="bg-gray-100 text-text-secondary uppercase border-b border-border">
                 <tr>
+                  <th className="px-4 py-3">Customer ID</th>
                   <th className="px-4 py-3">Customer Name</th>
                   <th className="px-4 py-3">Contact</th>
                   <th className="px-4 py-3">Package</th>
@@ -278,6 +279,7 @@ export const ReportsPage: React.FC = () => {
               <tbody className="divide-y divide-border">
                 {reportData.map((row, idx) => (
                   <tr key={idx} className="hover:bg-brand-red-light/20 align-top">
+                    <td className="px-4 py-2.5 font-bold font-mono text-brand-red-dark">{row.customer_id ?? ''}</td>
                     <td className="px-4 py-2.5 font-medium text-text-primary">{row.customer_name ?? ''}</td>
                     <td className="px-4 py-2.5 font-mono text-text-primary">{row.phone_number ?? ''}</td>
                     <td className="px-4 py-2.5 font-medium text-text-primary">{row.package ?? ''}</td>

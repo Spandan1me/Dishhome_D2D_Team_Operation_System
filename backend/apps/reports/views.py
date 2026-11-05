@@ -118,18 +118,18 @@ class VisitFindingsReportView(views.APIView):
                 'agent_name': v.agent.full_name or v.agent.username,
                 'visit_status': v.get_visit_status_display(),
                 'visit_category': v.visit_category,
-            'collection_type': v.collection_type,
-            'follow_up_remark': v.follow_up_remark,
-            'switching_reason': v.switching_reason,
-            'switching_to': v.switching_to,
-            'notes': v.notes,
-            'gps_latitude': str(v.gps_latitude) if v.gps_latitude else '',
-            'gps_longitude': str(v.gps_longitude) if v.gps_longitude else '',
-            'gps_accuracy': v.gps_accuracy,
-            'completed_at': v.completed_at.strftime('%Y-%m-%d %H:%M') if v.completed_at else '',
-            'record_source': v.customer.get_record_source_display()
-        }
-        for v in visits[:500]
+                'collection_type': v.collection_type,
+                'follow_up_remark': v.follow_up_remark,
+                'switching_reason': v.switching_reason,
+                'switching_to': v.switching_to,
+                'notes': v.notes,
+                'gps_latitude': str(v.gps_latitude) if v.gps_latitude else '',
+                'gps_longitude': str(v.gps_longitude) if v.gps_longitude else '',
+                'gps_accuracy': v.gps_accuracy,
+                'completed_at': v.completed_at.strftime('%Y-%m-%d %H:%M') if v.completed_at else '',
+                'record_source': v.customer.get_record_source_display()
+            }
+            for v in visits[:500]
         ]
         return Response(data)
 
@@ -267,7 +267,7 @@ class ExportReportView(views.APIView):
         elif report_type == 'visits':
             filename_prefix = "Visit_Findings"
             headers = [
-                'Customer Name', 'Contact', 'Package', 'Churn Days', 'Pod Station', 'Pod Name',
+                'Customer ID', 'Customer Name', 'Contact', 'Package', 'Churn Days', 'Pod Station', 'Pod Name',
                 'Agent Name', 'Visit Date', 'Category', 'Collection Type', 'Remarks', 'Remarks 1', 'ISP',
                 'Visit Status', 'Notes', 'GPS latitude', 'GPS longitude',
                 'GPS accuracy', 'Record Source'
@@ -300,6 +300,7 @@ class ExportReportView(views.APIView):
 
             for v in qs:
                 rows.append([
+                    normalize_export_value(v.customer.customer_id),
                     normalize_export_value(v.customer.customer_name),
                     normalize_export_value(v.customer.phone_number),
                     normalize_export_value(v.customer.package),
