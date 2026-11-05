@@ -448,7 +448,7 @@ export const VisitFormPage: React.FC = () => {
       return;
     }
     if (visitStatus === 'COMPLETED' && (!gpsLatitude || !gpsLongitude)) {
-      setError('GPS location is required when the visit status is completed.');
+      setError('GPS location is required when the visit status is Completed.');
       return;
     }
     if (photoUploadState === 'UPLOADING' || videoUploadState === 'UPLOADING') {

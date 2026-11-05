@@ -49,7 +49,8 @@ class VisitEvidenceTests(TestCase):
             {
                 'customer_id': str(self.customer.id),
                 'visit_status': 'COMPLETED',
-                'follow_up_remark': 'Connected',
+                'visit_category': 'Interested — Will recharge soon',
+                'follow_up_remark': 'Will recharge after 3 days',
                 'gps_latitude': 27.7172,
                 'gps_longitude': 85.3241,
                 'photo': self.make_photo(),
@@ -86,7 +87,8 @@ class VisitEvidenceTests(TestCase):
             {
                 'customer_id': str(self.customer.id),
                 'visit_status': 'COMPLETED',
-                'follow_up_remark': 'Connected',
+                'visit_category': 'Interested — Will recharge soon',
+                'follow_up_remark': 'Will recharge after 3 days',
                 'gps_latitude': 27.7172,
                 'gps_longitude': 85.3241,
                 'photo': self.make_photo(),
@@ -118,7 +120,8 @@ class VisitEvidenceTests(TestCase):
             {
                 'customer_id': str(self.customer.id),
                 'visit_status': 'COMPLETED',
-                'follow_up_remark': 'Connected',
+                'visit_category': 'Interested — Will recharge soon',
+                'follow_up_remark': 'Will recharge after 3 days',
                 'gps_latitude': 27.7172,
                 'gps_longitude': 85.3241,
                 'photo_evidence_id': upload_response.data['id'],
@@ -137,13 +140,29 @@ class VisitEvidenceTests(TestCase):
         self.assertEqual(evidence_response.status_code, status.HTTP_200_OK)
         evidence_response.close()
 
-    def test_completed_visit_allows_missing_gps_coordinates(self):
+    def test_completed_visit_requires_gps_coordinates(self):
         response = self.client.post(
             '/api/v1/visits/',
             {
                 'customer_id': str(self.customer.id),
                 'visit_status': 'COMPLETED',
-                'follow_up_remark': 'Connected',
+                'visit_category': 'Interested — Will recharge soon',
+                'follow_up_remark': 'Will recharge after 3 days',
+            },
+            format='multipart',
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('gps_latitude', response.data)
+
+    def test_unable_to_reach_allows_missing_gps_coordinates(self):
+        response = self.client.post(
+            '/api/v1/visits/',
+            {
+                'customer_id': str(self.customer.id),
+                'visit_status': 'UNABLE_TO_REACH',
+                'visit_category': 'Call not received/Not Connected',
+                'follow_up_remark': 'Busy/ Not Available',
             },
             format='multipart',
         )

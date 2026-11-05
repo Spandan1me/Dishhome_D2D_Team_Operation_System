@@ -180,6 +180,16 @@ class RecordVisitSerializer(serializers.Serializer):
             attrs['switching_reason'] = (attrs.get('switching_reason') or '').strip()
             attrs['switching_to'] = (attrs.get('switching_to') or '').strip()
 
+        visit_status = attrs.get('visit_status')
+        has_lat = attrs.get('gps_latitude') is not None
+        has_lon = attrs.get('gps_longitude') is not None
+
+        if visit_status == VisitStatus.COMPLETED and not (has_lat and has_lon):
+            raise serializers.ValidationError({
+                'gps_latitude': 'GPS location is required when the visit status is Completed.',
+                'gps_longitude': 'GPS location is required when the visit status is Completed.',
+            })
+
         if attrs.get('gps_latitude') is not None:
             attrs['gps_latitude'] = round(float(attrs['gps_latitude']), 7)
         if attrs.get('gps_longitude') is not None:
